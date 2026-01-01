@@ -43,7 +43,8 @@ export default function LoginScreen() {
 
   const maskAadhaar = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length <= 4) return cleaned;
+    if (cleaned.length < 4) return cleaned;
+    if (cleaned.length <= 6) return cleaned.slice(0, 2) + '*'.repeat(cleaned.length - 2);
     return cleaned.slice(0, 2) + '*'.repeat(cleaned.length - 4) + cleaned.slice(-2);
   };
 
