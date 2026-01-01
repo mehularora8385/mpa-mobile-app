@@ -61,19 +61,29 @@ export default function MarkPresentScreen() {
   return (
     <ScreenContainer className="p-4">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="gap-4">
+        <View style={{ gap: 16 }}>
           {/* Header */}
-          <View className="gap-2">
-            <Text className="text-2xl font-bold text-foreground">Mark Present</Text>
-            <Text className="text-sm text-muted">Mark candidate attendance</Text>
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#11181C' }}>Mark Present</Text>
+            <Text style={{ fontSize: 14, color: '#687076' }}>Mark candidate attendance</Text>
           </View>
 
           {/* Roll Number Input */}
-          <View className="gap-2">
-            <Text className="text-sm font-semibold text-foreground">Enter Roll Number</Text>
-            <View className="flex-row gap-2">
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: '#11181C' }}>Enter Roll Number</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
               <TextInput
-                className="flex-1 bg-surface border border-border rounded-lg p-3 text-foreground"
+                style={{
+                  flex: 1,
+                  backgroundColor: '#f5f5f5',
+                  borderWidth: 1,
+                  borderColor: '#E5E7EB',
+                  borderRadius: 8,
+                  paddingVertical: 12,
+                  paddingHorizontal: 12,
+                  color: '#11181C',
+                  fontSize: 16,
+                }}
                 placeholder="Roll number"
                 placeholderTextColor="#999"
                 value={rollNo}
@@ -84,12 +94,20 @@ export default function MarkPresentScreen() {
               <TouchableOpacity
                 onPress={handleSearch}
                 disabled={loading || marking || !rollNo.trim()}
-                className="bg-primary rounded-lg px-4 items-center justify-center"
+                style={{
+                  backgroundColor: '#0a7ea4',
+                  borderRadius: 8,
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: (loading || marking || !rollNo.trim()) ? 0.5 : 1,
+                }}
               >
                 {loading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text className="text-white font-semibold">Search</Text>
+                  <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 14 }}>Search</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -97,25 +115,33 @@ export default function MarkPresentScreen() {
 
           {/* Candidate Details */}
           {candidate && (
-            <View className="bg-surface border border-border rounded-lg p-4 gap-3">
-              <Text className="text-sm font-semibold text-foreground mb-2">Candidate Details</Text>
+            <View style={{
+              backgroundColor: '#f5f5f5',
+              borderWidth: 1,
+              borderColor: '#E5E7EB',
+              borderRadius: 8,
+              paddingVertical: 16,
+              paddingHorizontal: 16,
+              gap: 12,
+            }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#11181C', marginBottom: 8 }}>Candidate Details</Text>
               
-              <View className="gap-2">
-                <View className="flex-row justify-between">
-                  <Text className="text-xs text-muted">Roll Number</Text>
-                  <Text className="text-sm font-semibold text-foreground">{candidate.rollNo}</Text>
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ fontSize: 12, color: '#687076' }}>Roll Number</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#11181C' }}>{candidate.rollNo}</Text>
                 </View>
-                <View className="h-px bg-border" />
+                <View style={{ height: 1, backgroundColor: '#E5E7EB' }} />
                 
-                <View className="flex-row justify-between">
-                  <Text className="text-xs text-muted">Name</Text>
-                  <Text className="text-sm font-semibold text-foreground">{candidate.name}</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ fontSize: 12, color: '#687076' }}>Name</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#11181C' }}>{candidate.name}</Text>
                 </View>
-                <View className="h-px bg-border" />
+                <View style={{ height: 1, backgroundColor: '#E5E7EB' }} />
                 
-                <View className="flex-row justify-between">
-                  <Text className="text-xs text-muted">Current Status</Text>
-                  <Text className="text-sm font-semibold text-foreground">
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text style={{ fontSize: 12, color: '#687076' }}>Current Status</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#11181C' }}>
                     {candidate.present === true ? '✓ Present' : candidate.present === false ? '✗ Absent' : '⊘ Not Marked'}
                   </Text>
                 </View>
@@ -125,45 +151,77 @@ export default function MarkPresentScreen() {
 
           {/* Action Buttons */}
           {candidate && (
-            <View className="gap-3">
+            <View style={{ gap: 12 }}>
               <TouchableOpacity
                 onPress={() => handleMarkPresent(true)}
                 disabled={marking}
-                className="bg-success rounded-lg p-4 items-center"
+                style={{
+                  backgroundColor: '#22C55E',
+                  borderRadius: 8,
+                  paddingVertical: 16,
+                  paddingHorizontal: 16,
+                  alignItems: 'center',
+                  opacity: marking ? 0.5 : 1,
+                }}
               >
                 {marking ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text className="text-white font-semibold text-base">✓ Mark Present</Text>
+                  <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>✓ Mark Present</Text>
                 )}
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => handleMarkPresent(false)}
                 disabled={marking}
-                className="bg-error rounded-lg p-4 items-center"
+                style={{
+                  backgroundColor: '#EF4444',
+                  borderRadius: 8,
+                  paddingVertical: 16,
+                  paddingHorizontal: 16,
+                  alignItems: 'center',
+                  opacity: marking ? 0.5 : 1,
+                }}
               >
                 {marking ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text className="text-white font-semibold text-base">✗ Mark Absent</Text>
+                  <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 16 }}>✗ Mark Absent</Text>
                 )}
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={handleClear}
                 disabled={marking}
-                className="bg-surface border border-border rounded-lg p-4 items-center"
+                style={{
+                  backgroundColor: '#f5f5f5',
+                  borderColor: '#E5E7EB',
+                  borderWidth: 1,
+                  borderRadius: 8,
+                  paddingVertical: 16,
+                  paddingHorizontal: 16,
+                  alignItems: 'center',
+                  opacity: marking ? 0.5 : 1,
+                }}
               >
-                <Text className="text-foreground font-semibold text-base">Clear</Text>
+                <Text style={{ color: '#11181C', fontWeight: '600', fontSize: 16 }}>Clear</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Info Box */}
-          <View className="bg-primary/10 border border-primary rounded-lg p-4 gap-2 mt-4">
-            <Text className="text-xs font-semibold text-primary">ℹ️ Instructions</Text>
-            <Text className="text-xs text-foreground leading-relaxed">
+          <View style={{
+            backgroundColor: '#E6F4FE',
+            borderWidth: 1,
+            borderColor: '#0a7ea4',
+            borderRadius: 8,
+            paddingVertical: 16,
+            paddingHorizontal: 16,
+            gap: 8,
+            marginTop: 16,
+          }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#0a7ea4' }}>ℹ️ Instructions</Text>
+            <Text style={{ fontSize: 12, color: '#11181C', lineHeight: 18 }}>
               1. Enter or scan candidate roll number{'\n'}
               2. Candidate details will appear{'\n'}
               3. Click Mark Present or Mark Absent{'\n'}
