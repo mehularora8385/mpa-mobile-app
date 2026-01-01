@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from './screen-container';
-import { cn } from '@/lib/utils';
 import { useColors } from '@/hooks/use-colors';
 import { mockAuthService } from '@/lib/auth-mock';
 
@@ -115,24 +114,30 @@ export function LoginForm() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <View className="flex-1 gap-6">
             {/* Header */}
-            <View className="items-center gap-2 mb-4">
-              <Text className="text-3xl font-bold text-primary">SEPL</Text>
-              <Text className="text-lg font-semibold text-foreground">Biometric Verification</Text>
-              <Text className="text-sm text-muted">Operator Login</Text>
+            <View style={{ alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#0a7ea4' }}>SEPL</Text>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#11181C' }}>Biometric Verification</Text>
+              <Text style={{ fontSize: 14, color: '#687076' }}>Operator Login</Text>
             </View>
 
             {/* Form */}
-            <View className="gap-4">
+            <View style={{ gap: 16 }}>
               {/* Operator Name */}
-              <View className="gap-2">
-                <Text className="text-sm font-semibold text-foreground">Operator Name</Text>
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#11181C' }}>Operator Name</Text>
                 <TextInput
-                  className={cn(
-                    'border border-border rounded-lg p-3 text-foreground bg-background',
-                    'text-base'
-                  )}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    color: '#11181C',
+                    fontSize: 16,
+                    backgroundColor: '#ffffff',
+                  }}
                   placeholder="Enter your full name"
-                  placeholderTextColor={colors.muted}
+                  placeholderTextColor="#687076"
                   value={operatorName}
                   onChangeText={setOperatorName}
                   editable={!loading}
@@ -140,15 +145,21 @@ export function LoginForm() {
               </View>
 
               {/* Mobile Number */}
-              <View className="gap-2">
-                <Text className="text-sm font-semibold text-foreground">Mobile Number</Text>
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#11181C' }}>Mobile Number</Text>
                 <TextInput
-                  className={cn(
-                    'border border-border rounded-lg p-3 text-foreground bg-background',
-                    'text-base'
-                  )}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    color: '#11181C',
+                    fontSize: 16,
+                    backgroundColor: '#ffffff',
+                  }}
                   placeholder="10-digit mobile number"
-                  placeholderTextColor={colors.muted}
+                  placeholderTextColor="#687076"
                   value={mobileNumber}
                   onChangeText={setMobileNumber}
                   keyboardType="numeric"
@@ -158,15 +169,21 @@ export function LoginForm() {
               </View>
 
               {/* Aadhaar Number */}
-              <View className="gap-2">
-                <Text className="text-sm font-semibold text-foreground">Aadhaar Number</Text>
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#11181C' }}>Aadhaar Number</Text>
                 <TextInput
-                  className={cn(
-                    'border border-border rounded-lg p-3 text-foreground bg-background',
-                    'text-base'
-                  )}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: '#E5E7EB',
+                    borderRadius: 8,
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    color: '#11181C',
+                    fontSize: 16,
+                    backgroundColor: '#ffffff',
+                  }}
                   placeholder="12-digit Aadhaar number"
-                  placeholderTextColor={colors.muted}
+                  placeholderTextColor="#687076"
                   value={aadhaarNumber}
                   onChangeText={setAadhaarNumber}
                   keyboardType="numeric"
@@ -181,19 +198,33 @@ export function LoginForm() {
             <Pressable
               onPress={handleContinue}
               disabled={loading}
-              className={cn(
-                'bg-primary rounded-lg p-4 items-center',
-                loading && 'opacity-50'
-              )}
+              style={{
+                backgroundColor: '#0a7ea4',
+                borderRadius: 8,
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                alignItems: 'center',
+                opacity: loading ? 0.5 : 1,
+              }}
             >
-              <Text className="text-white font-bold text-base">Continue</Text>
+              <Text style={{
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: 16,
+              }}>Continue</Text>
             </Pressable>
 
             {/* Test Credentials */}
-            <View className="bg-surface rounded-lg p-4 gap-1">
-              <Text className="text-xs font-bold text-foreground">TEST CREDENTIALS:</Text>
-              <Text className="text-xs text-muted">Mobile: 9730018733</Text>
-              <Text className="text-xs text-muted">Aadhaar: 659999999978</Text>
+            <View style={{
+              backgroundColor: '#f5f5f5',
+              borderRadius: 8,
+              paddingVertical: 16,
+              paddingHorizontal: 16,
+              gap: 4,
+            }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#11181C' }}>TEST CREDENTIALS:</Text>
+              <Text style={{ fontSize: 12, color: '#687076' }}>Mobile: 9730018733</Text>
+              <Text style={{ fontSize: 12, color: '#687076' }}>Aadhaar: 659999999978</Text>
             </View>
           </View>
         </ScrollView>
@@ -207,52 +238,89 @@ export function LoginForm() {
       <ScreenContainer className="p-6">
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <View className="flex-1 gap-4">
-            <View className="items-center gap-2 mb-4">
-              <Text className="text-2xl font-bold text-primary">SEPL</Text>
-              <Text className="text-lg font-semibold text-foreground">Capture Selfie</Text>
+            <View style={{ alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0a7ea4' }}>SEPL</Text>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#11181C' }}>Capture Selfie</Text>
             </View>
 
             {/* Camera View */}
-            <View className="bg-surface rounded-lg overflow-hidden h-64 mb-4">
+            <View style={{
+              backgroundColor: '#f5f5f5',
+              borderRadius: 8,
+              overflow: 'hidden',
+              height: 256,
+              marginBottom: 16,
+            }}>
               <CameraView
                 ref={cameraRef}
                 facing="front"
-                className="flex-1"
+                style={{ flex: 1 }}
                 onMountError={(error) => {
                   console.log('Camera error:', error);
                 }}
               />
             </View>
 
-            {/* Buttons */}
+            {/* Capture Selfie Button */}
             <Pressable
               onPress={handleCaptureSelfie}
               disabled={loading}
-              className={cn(
-                'bg-primary rounded-lg p-4 items-center',
-                loading && 'opacity-50'
-              )}
+              style={{
+                backgroundColor: '#0a7ea4',
+                borderRadius: 8,
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                alignItems: 'center',
+                opacity: loading ? 0.5 : 1,
+              }}
             >
-              <Text className="text-white font-bold text-base">Capture Selfie</Text>
+              <Text style={{
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: 16,
+              }}>Capture Selfie</Text>
             </Pressable>
 
+            {/* Mock Capture Button */}
             <Pressable
               onPress={handleMockCapture}
               disabled={loading}
-              className={cn(
-                'bg-secondary rounded-lg p-4 items-center',
-                loading && 'opacity-50'
-              )}
+              style={{
+                backgroundColor: '#666666',
+                borderRadius: 8,
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                alignItems: 'center',
+                opacity: loading ? 0.5 : 1,
+              }}
             >
-              <Text className="text-white font-bold text-base">Capture Selfie (Mock)</Text>
+              <Text style={{
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: 16,
+              }}>Capture Selfie (Mock)</Text>
             </Pressable>
 
+            {/* Back Button */}
             <Pressable
               onPress={() => setStep('form')}
               disabled={loading}
-              className="bg-surface border border-border rounded-lg p-4 items-center"
+              style={{
+                backgroundColor: '#f5f5f5',
+                borderColor: '#E5E7EB',
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                alignItems: 'center',
+                opacity: loading ? 0.5 : 1,
+              }}
             >
-              <Text className="text-foreground font-semibold text-base">Back</Text>
+              <Text style={{
+                color: '#11181C',
+                fontWeight: '600',
+                fontSize: 16,
+              }}>Back</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -268,37 +336,51 @@ export function LoginForm() {
       <ScreenContainer className="p-6">
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <View className="flex-1 gap-4">
-            <View className="items-center gap-2 mb-4">
-              <Text className="text-2xl font-bold text-primary">SEPL</Text>
-              <Text className="text-lg font-semibold text-foreground">Biometric Verification</Text>
-              <Text className="text-sm text-muted">Review Details</Text>
+            <View style={{ alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0a7ea4' }}>SEPL</Text>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#11181C' }}>Biometric Verification</Text>
+              <Text style={{ fontSize: 14, color: '#687076' }}>Review Details</Text>
             </View>
 
             {/* Selfie */}
-            <View className="gap-2">
-              <Text className="text-sm font-semibold text-foreground">Your Selfie</Text>
-              <View className="bg-surface rounded-lg h-48 items-center justify-center border border-border">
+            <View style={{ gap: 8 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: '#11181C' }}>Your Selfie</Text>
+              <View style={{
+                backgroundColor: '#f5f5f5',
+                borderRadius: 8,
+                height: 192,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: '#E5E7EB',
+              }}>
                 {selfieUri && selfieUri !== 'mock-selfie-uri' ? (
-                  <Text className="text-muted">Selfie captured</Text>
+                  <Text style={{ color: '#687076' }}>Selfie captured</Text>
                 ) : (
-                  <Text className="text-muted">Mock selfie</Text>
+                  <Text style={{ color: '#687076' }}>Mock selfie</Text>
                 )}
               </View>
             </View>
 
             {/* Details */}
-            <View className="bg-surface rounded-lg p-4 gap-3">
+            <View style={{
+              backgroundColor: '#f5f5f5',
+              borderRadius: 8,
+              paddingVertical: 16,
+              paddingHorizontal: 16,
+              gap: 12,
+            }}>
               <View>
-                <Text className="text-xs text-muted mb-1">Operator Name</Text>
-                <Text className="text-base font-semibold text-foreground">{operatorName}</Text>
+                <Text style={{ fontSize: 12, color: '#687076', marginBottom: 4 }}>Operator Name</Text>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#11181C' }}>{operatorName}</Text>
               </View>
               <View>
-                <Text className="text-xs text-muted mb-1">Mobile Number</Text>
-                <Text className="text-base font-semibold text-foreground">+91 {mobileNumber}</Text>
+                <Text style={{ fontSize: 12, color: '#687076', marginBottom: 4 }}>Mobile Number</Text>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#11181C' }}>+91 {mobileNumber}</Text>
               </View>
               <View>
-                <Text className="text-xs text-muted mb-1">Aadhaar Number</Text>
-                <Text className="text-base font-semibold text-foreground">{maskedAadhaar}</Text>
+                <Text style={{ fontSize: 12, color: '#687076', marginBottom: 4 }}>Aadhaar Number</Text>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#11181C' }}>{maskedAadhaar}</Text>
               </View>
             </View>
 
