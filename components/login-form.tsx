@@ -306,12 +306,20 @@ export function LoginForm() {
             <Pressable
               onPress={handleConfirmLogin}
               disabled={loading}
-              className={cn(
-                'bg-primary rounded-lg p-4 items-center',
-                loading && 'opacity-50'
-              )}
+              style={{
+                backgroundColor: '#0a7ea4',
+                borderRadius: 8,
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                alignItems: 'center',
+                opacity: loading ? 0.5 : 1,
+              }}
             >
-              <Text className="text-white font-bold text-base">
+              <Text style={{
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: 16,
+              }}>
                 {loading ? 'Logging in...' : 'Confirm and Login'}
               </Text>
             </Pressable>
@@ -320,18 +328,44 @@ export function LoginForm() {
             <Pressable
               onPress={handleRetakeSelfie}
               disabled={loading}
-              className="bg-surface border border-border rounded-lg p-4 items-center"
+              style={{
+                backgroundColor: '#f5f5f5',
+                borderColor: '#E5E7EB',
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                alignItems: 'center',
+                opacity: loading ? 0.5 : 1,
+              }}
             >
-              <Text className="text-foreground font-semibold text-base">Retake Selfie</Text>
+              <Text style={{
+                color: '#11181C',
+                fontWeight: '600',
+                fontSize: 16,
+              }}>Retake Selfie</Text>
             </Pressable>
 
             {/* Edit Details Button */}
             <Pressable
               onPress={handleEditDetails}
               disabled={loading}
-              className="bg-surface border border-border rounded-lg p-4 items-center"
+              style={{
+                backgroundColor: '#f5f5f5',
+                borderColor: '#E5E7EB',
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingVertical: 16,
+                paddingHorizontal: 16,
+                alignItems: 'center',
+                opacity: loading ? 0.5 : 1,
+              }}
             >
-              <Text className="text-foreground font-semibold text-base">Edit Details</Text>
+              <Text style={{
+                color: '#11181C',
+                fontWeight: '600',
+                fontSize: 16,
+              }}>Edit Details</Text>
             </Pressable>
           </View>
         </ScrollView>
