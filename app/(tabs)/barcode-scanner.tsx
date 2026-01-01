@@ -1,205 +1,214 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Alert } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity, TextInput, FlatList } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
-import { barcodeScannerService } from '@/lib/barcode-scanner-service';
-import * as Haptics from 'expo-haptics';
+import { mockCandidatesService } from '@/lib/mock-candidates';
+import { useState, useEffect } from 'react';
 
-export default function BarcodeScannerScreen() {
-  const [rollNo, setRollNo] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
-  const [scanHistory, setScanHistory] = useState<any[]>([]);
-  const [manualMode, setManualMode] = useState(false);
-  const [torchOn, setTorchOn] = useState(false);
+type FilterType = 'all' | 'present' | 'absent' | 'verified' | 'pending';
 
-  const handleScan = async () => {
-    setIsScanning(true);
-    try {
-      const result = await barcodeScannerService.scanBarcode();
+export default function CandidatesDetailsScreen() {
+  const [candidates, setCandidates] = useState<any[]>([]);
+  const [filteredCandidates, setFilteredCandidates] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
-      if (result.success) {
-        const parsedRollNo = barcodeScannerService.parseScannedData(result.rollNo);
+  useEffect(() => {
+    loadCandidates();
+  }, []);
 
-        if (barcodeScannerService.validateRollNo(parsedRollNo)) {
-          setRollNo(parsedRollNo);
-          setScanHistory([...scanHistory, result]);
+  useEffect(() => {
+    filterCandidates();
+  }, [candidates, searchQuery, activeFilter]);
 
-          // Show success message
-          Alert.alert('Success', `Roll No: ${parsedRollNo} scanned successfully!`);
-        } else {
-          Alert.alert('Invalid', 'Invalid roll number format. Please try again.');
-        }
-      } else {
-        Alert.alert('Scan Failed', result.error || 'Unable to scan. Please try again.');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Scanning failed. Please try again.');
-    } finally {
-      setIsScanning(false);
-    }
+  const loadCandidates = () => {
+    const allCandidates = mockCandidatesService.getAllCandidates();
+    setCandidates(allCandidates);
   };
 
-  const handleManualEntry = () => {
-    if (!rollNo.trim()) {
-      Alert.alert('Error', 'Please enter a roll number');
-      return;
+  const filterCandidates = () => {
+    let filtered = mockCandidatesService.getCandidatesByStatus(activeFilter);
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        c => c.rollNo.includes(query) || c.name.toLowerCase().includes(query)
+      );
     }
 
-    if (!barcodeScannerService.validateRollNo(rollNo)) {
-      Alert.alert('Invalid', 'Roll number format should be like A001, B002, etc.');
-      return;
-    }
-
-    Alert.alert('Success', `Roll No: ${rollNo.toUpperCase()} entered successfully!`);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setFilteredCandidates(filtered);
   };
 
-  const handleClear = () => {
-    setRollNo('');
-    setManualMode(false);
+  const getStatusBadge = (present: boolean | null) => {
+    if (present === true) return { text: '✓ Yes', color: 'bg-success/20 border-success text-success' };
+    if (present === false) return { text: '✗ No', color: 'bg-error/20 border-error text-error' };
+    return { text: '⊘ Not Marked', color: 'bg-muted/20 border-muted text-muted' };
   };
 
-  const stats = barcodeScannerService.getStatistics();
+  const getVerificationBadge = (verified: boolean | null) => {
+    if (verified === true) return { text: '✓ Yes', color: 'bg-success/20 border-success text-success' };
+    if (verified === false) return { text: '✗ No', color: 'bg-error/20 border-error text-error' };
+    return { text: '⊘ Pending', color: 'bg-warning/20 border-warning text-warning' };
+  };
+
+  const renderCandidate = ({ item }: { item: any }) => {
+    const presentBadge = getStatusBadge(item.present);
+    const verifiedBadge = getVerificationBadge(item.verified);
+
+    return (
+      <View className="bg-surface border border-border rounded-lg p-4 mb-3 gap-3">
+        {/* Header */}
+        <View className="flex-row justify-between items-start">
+          <View className="flex-1">
+            <Text className="text-sm font-semibold text-foreground">{item.name}</Text>
+            <Text className="text-xs text-muted mt-1">Roll: {item.rollNo}</Text>
+          </View>
+        </View>
+
+        {/* Status Badges */}
+        <View className="flex-row gap-2">
+          <View className={`flex-1 border rounded-lg p-2 items-center ${presentBadge.color}`}>
+            <Text className="text-xs font-semibold">Present</Text>
+            <Text className="text-xs font-bold mt-1">{presentBadge.text}</Text>
+          </View>
+
+          <View className={`flex-1 border rounded-lg p-2 items-center ${verifiedBadge.color}`}>
+            <Text className="text-xs font-semibold">Verified</Text>
+            <Text className="text-xs font-bold mt-1">{verifiedBadge.text}</Text>
+          </View>
+        </View>
+
+        {/* Sync Status */}
+        <View className="flex-row items-center gap-2 pt-2 border-t border-border">
+          <Text className="text-xs text-muted">Sync:</Text>
+          <Text className={`text-xs font-semibold ${item.synced ? 'text-success' : 'text-warning'}`}>
+            {item.synced ? '✓ Synced' : '⟳ Pending'}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  const getFilterStats = (filter: FilterType) => {
+    return mockCandidatesService.getCandidatesByStatus(filter).length;
+  };
 
   return (
-    <ScreenContainer className="bg-gray-50">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-4">
-        {/* Header */}
-        <View className="mb-6">
-          <Text className="text-3xl font-bold text-gray-900">📱 Roll No Scanner</Text>
-          <Text className="text-gray-600 mt-2">Scan or manually enter roll number</Text>
-        </View>
-
-        {/* Camera Preview Placeholder */}
-        <View className="bg-white rounded-lg shadow-lg p-6 mb-6 border-2 border-blue-300">
-          <View className="w-full aspect-square bg-gray-900 rounded-lg mb-4 flex items-center justify-center border-2 border-dashed border-gray-600">
-            <Text className="text-white text-center">
-              {isScanning ? '📷 Scanning...' : '📷 Camera Preview'}
-            </Text>
+    <ScreenContainer className="p-4">
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View className="gap-4">
+          {/* Header */}
+          <View className="gap-2">
+            <Text className="text-2xl font-bold text-foreground">Candidates Details</Text>
+            <Text className="text-sm text-muted">View all candidates and their status</Text>
           </View>
 
-          {/* Torch Toggle */}
-          <Pressable
-            onPress={() => setTorchOn(!torchOn)}
-            className={`p-3 rounded-lg mb-4 ${torchOn ? 'bg-yellow-100' : 'bg-gray-100'}`}
-          >
-            <Text className={`text-center font-semibold ${torchOn ? 'text-yellow-800' : 'text-gray-700'}`}>
-              {torchOn ? '💡 Torch ON' : '💡 Torch OFF'}
-            </Text>
-          </Pressable>
-
-          {/* Scan Button */}
-          <Pressable
-            onPress={handleScan}
-            disabled={isScanning}
-            className={`p-4 rounded-lg mb-3 ${isScanning ? 'bg-gray-300' : 'bg-blue-600'}`}
-          >
-            <Text className="text-white text-center font-bold text-lg">
-              {isScanning ? '⏳ Scanning...' : '🔍 Scan Roll Number'}
-            </Text>
-          </Pressable>
-
-          {/* Manual Entry Toggle */}
-          <Pressable
-            onPress={() => setManualMode(!manualMode)}
-            className="p-3 rounded-lg bg-gray-200"
-          >
-            <Text className="text-gray-800 text-center font-semibold">
-              {manualMode ? '✓ Manual Mode' : 'Manual Entry'}
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Manual Entry Section */}
-        {manualMode && (
-          <View className="bg-white rounded-lg shadow p-6 mb-6 border-l-4 border-orange-500">
-            <Text className="text-lg font-bold text-gray-900 mb-3">Manual Entry</Text>
-
+          {/* Search Bar */}
+          <View className="bg-surface border border-border rounded-lg flex-row items-center px-3 gap-2">
+            <Text className="text-muted">🔍</Text>
             <TextInput
-              value={rollNo}
-              onChangeText={setRollNo}
-              placeholder="Enter Roll No (e.g., A001)"
+              className="flex-1 py-3 text-foreground"
+              placeholder="Search by roll no or name..."
               placeholderTextColor="#999"
-              className="border border-gray-300 rounded-lg px-4 py-3 mb-4 text-gray-900 font-semibold"
-              maxLength={4}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
             />
-
-            <Text className="text-xs text-gray-600 mb-4">
-              Format: Letter + 3 digits (A001, B002, etc.)
-            </Text>
-
-            <Pressable
-              onPress={handleManualEntry}
-              className="bg-green-600 p-4 rounded-lg mb-2"
-            >
-              <Text className="text-white text-center font-bold">✓ Confirm</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* Current Roll No Display */}
-        {rollNo && (
-          <View className="bg-green-50 rounded-lg shadow p-6 mb-6 border-l-4 border-green-500">
-            <Text className="text-gray-600 text-sm font-semibold">Current Roll No</Text>
-            <Text className="text-3xl font-bold text-green-600 mt-2">{rollNo.toUpperCase()}</Text>
-
-            <Pressable
-              onPress={handleClear}
-              className="bg-red-100 p-3 rounded-lg mt-4"
-            >
-              <Text className="text-red-700 text-center font-semibold">Clear</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* Statistics */}
-        <View className="bg-white rounded-lg shadow p-6 mb-6">
-          <Text className="text-lg font-bold text-gray-900 mb-4">Scan Statistics</Text>
-
-          <View className="grid grid-cols-3 gap-3">
-            <View className="bg-blue-50 p-3 rounded-lg">
-              <Text className="text-gray-600 text-xs">Total Scans</Text>
-              <Text className="text-2xl font-bold text-blue-600 mt-1">{stats.total}</Text>
-            </View>
-
-            <View className="bg-green-50 p-3 rounded-lg">
-              <Text className="text-gray-600 text-xs">Successful</Text>
-              <Text className="text-2xl font-bold text-green-600 mt-1">{stats.successful}</Text>
-            </View>
-
-            <View className="bg-red-50 p-3 rounded-lg">
-              <Text className="text-gray-600 text-xs">Failed</Text>
-              <Text className="text-2xl font-bold text-red-600 mt-1">{stats.failed}</Text>
-            </View>
+            {searchQuery ? (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Text className="text-muted text-lg">✕</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
 
-          <View className="bg-purple-50 p-3 rounded-lg mt-3">
-            <Text className="text-gray-600 text-xs">Success Rate</Text>
-            <Text className="text-2xl font-bold text-purple-600 mt-1">{stats.successRate}%</Text>
+          {/* Filter Buttons */}
+          <View className="gap-2">
+            <Text className="text-xs font-semibold text-muted">FILTER BY STATUS</Text>
+            <View className="flex-row gap-2 flex-wrap">
+              <TouchableOpacity
+                onPress={() => setActiveFilter('all')}
+                className={`px-3 py-2 rounded-full border ${
+                  activeFilter === 'all' ? 'border-primary bg-primary/10' : 'border-border bg-surface'
+                }`}
+              >
+                <Text className={`text-xs font-semibold ${activeFilter === 'all' ? 'text-primary' : 'text-foreground'}`}>
+                  All ({candidates.length})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setActiveFilter('present')}
+                className={`px-3 py-2 rounded-full border ${
+                  activeFilter === 'present' ? 'border-success bg-success/10' : 'border-border bg-surface'
+                }`}
+              >
+                <Text className={`text-xs font-semibold ${activeFilter === 'present' ? 'text-success' : 'text-foreground'}`}>
+                  Present ({getFilterStats('present')})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setActiveFilter('absent')}
+                className={`px-3 py-2 rounded-full border ${
+                  activeFilter === 'absent' ? 'border-error bg-error/10' : 'border-border bg-surface'
+                }`}
+              >
+                <Text className={`text-xs font-semibold ${activeFilter === 'absent' ? 'text-error' : 'text-foreground'}`}>
+                  Absent ({getFilterStats('absent')})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setActiveFilter('verified')}
+                className={`px-3 py-2 rounded-full border ${
+                  activeFilter === 'verified' ? 'border-success bg-success/10' : 'border-border bg-surface'
+                }`}
+              >
+                <Text className={`text-xs font-semibold ${activeFilter === 'verified' ? 'text-success' : 'text-foreground'}`}>
+                  Verified ({getFilterStats('verified')})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setActiveFilter('pending')}
+                className={`px-3 py-2 rounded-full border ${
+                  activeFilter === 'pending' ? 'border-warning bg-warning/10' : 'border-border bg-surface'
+                }`}
+              >
+                <Text className={`text-xs font-semibold ${activeFilter === 'pending' ? 'text-warning' : 'text-foreground'}`}>
+                  Pending ({getFilterStats('pending')})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Candidates List */}
+          {filteredCandidates.length > 0 ? (
+            <FlatList
+              data={filteredCandidates}
+              renderItem={renderCandidate}
+              keyExtractor={item => item.rollNo}
+              scrollEnabled={false}
+              contentContainerStyle={{ gap: 0 }}
+            />
+          ) : (
+            <View className="items-center justify-center py-8 gap-3">
+              <Text className="text-4xl">📋</Text>
+              <Text className="text-foreground font-semibold">No candidates found</Text>
+              <Text className="text-sm text-muted text-center">
+                Try adjusting your search or filter criteria
+              </Text>
+            </View>
+          )}
+
+          {/* Summary */}
+          <View className="bg-primary/10 border border-primary rounded-lg p-4 gap-2 mt-4">
+            <Text className="text-xs font-semibold text-primary">Summary</Text>
+            <View className="gap-1">
+              <Text className="text-xs text-foreground">Total Candidates: {candidates.length}</Text>
+              <Text className="text-xs text-foreground">Present: {getFilterStats('present')}</Text>
+              <Text className="text-xs text-foreground">Verified: {getFilterStats('verified')}</Text>
+              <Text className="text-xs text-foreground">Pending: {getFilterStats('pending')}</Text>
+            </View>
           </View>
         </View>
-
-        {/* Scan History */}
-        {scanHistory.length > 0 && (
-          <View className="bg-white rounded-lg shadow p-6">
-            <Text className="text-lg font-bold text-gray-900 mb-4">Recent Scans</Text>
-
-            {scanHistory.slice(-5).reverse().map((scan, index) => (
-              <View key={index} className="flex-row justify-between items-center py-3 border-b border-gray-200 last:border-b-0">
-                <View>
-                  <Text className="font-semibold text-gray-900">{scan.rollNo}</Text>
-                  <Text className="text-xs text-gray-600">
-                    {new Date(scan.timestamp).toLocaleTimeString()}
-                  </Text>
-                </View>
-                <View className={`px-3 py-1 rounded-full ${scan.success ? 'bg-green-100' : 'bg-red-100'}`}>
-                  <Text className={`text-xs font-semibold ${scan.success ? 'text-green-800' : 'text-red-800'}`}>
-                    {scan.success ? '✓' : '✗'}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
       </ScrollView>
     </ScreenContainer>
   );

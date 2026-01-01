@@ -1,158 +1,147 @@
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { ScreenContainer } from '@/components/screen-container';
 import { mockAuthService } from '@/lib/auth-mock';
-import type { OperatorSession } from '@/lib/auth-mock';
+import { mockCandidatesService } from '@/lib/mock-candidates';
+import { useState, useEffect } from 'react';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [session, setSession] = useState<OperatorSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<any>(null);
+  const [stats, setStats] = useState({ total: 0, marked: 0, verified: 0, pending: 0 });
 
   useEffect(() => {
-    loadSession();
+    loadData();
   }, []);
 
-  const loadSession = async () => {
+  const loadData = async () => {
     try {
       const currentSession = await mockAuthService.getSession();
-      if (!currentSession) {
-        router.replace('/');
-        return;
-      }
       setSession(currentSession);
+
+      // Calculate stats
+      const candidates = mockCandidatesService.getAllCandidates();
+      const marked = candidates.filter(c => c.present !== null).length;
+      const verified = candidates.filter(c => c.verified === true).length;
+      const pending = candidates.filter(c => c.verified !== true).length;
+
+      setStats({
+        total: candidates.length,
+        marked,
+        verified,
+        pending,
+      });
     } catch (err) {
-      console.error('Error loading session:', err);
-      router.replace('/');
-    } finally {
-      setLoading(false);
+      console.error('Error loading data:', err);
     }
   };
 
-  const handleLogout = async () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          try {
+  const handleLogout = () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', onPress: () => {}, style: 'cancel' },
+        {
+          text: 'Logout',
+          onPress: async () => {
             await mockAuthService.logout();
-            router.replace('/');
-          } catch (err) {
-            Alert.alert('Error', 'Failed to logout');
-          }
+            router.replace('/(tabs)');
+          },
+          style: 'destructive',
         },
-      },
-    ]);
+      ]
+    );
   };
 
-  if (loading) {
-    return (
-      <ScreenContainer className="justify-center items-center">
-        <ActivityIndicator size="large" color="#0066CC" />
-      </ScreenContainer>
-    );
-  }
-
-  if (!session) {
-    return (
-      <ScreenContainer className="justify-center items-center">
-        <Text className="text-foreground">No session found</Text>
-      </ScreenContainer>
-    );
-  }
-
   return (
-    <ScreenContainer className="bg-background">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-6">
-        <View className="flex-1 gap-8">
-          <View className="items-center gap-2">
-            <Text className="text-4xl font-bold text-primary">SEPL</Text>
-            <Text className="text-lg text-foreground font-semibold">Biometric Verification</Text>
-            <Text className="text-sm text-muted">Operator Dashboard</Text>
+    <ScreenContainer className="p-4">
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View className="gap-6">
+          {/* Header */}
+          <View className="gap-2">
+            <Text className="text-3xl font-bold text-primary">Welcome</Text>
+            <Text className="text-lg font-semibold text-foreground">
+              {session?.operatorName || 'Operator'}
+            </Text>
+            <Text className="text-sm text-muted">Centre: Centre 1 - Delhi</Text>
           </View>
 
-          <View className="bg-primary/10 border border-primary/20 rounded-2xl p-6">
-            <Text className="text-sm text-muted mb-1">Welcome back,</Text>
-            <Text className="text-2xl font-bold text-foreground">{session.operatorName}</Text>
-            <Text className="text-xs text-muted mt-2">Operator ID: {session.operatorId}</Text>
-          </View>
-
-          <View className="gap-3">
-            <Text className="text-lg font-bold text-foreground">Quick Stats</Text>
-            <View className="flex-row gap-3">
-              <View className="flex-1 bg-surface rounded-lg p-4 border border-border">
-                <Text className="text-2xl font-bold text-primary">0</Text>
-                <Text className="text-xs text-muted mt-1">Exams Today</Text>
+          {/* Operator Info Card */}
+          <View className="bg-surface rounded-lg p-4 border border-border gap-3">
+            <Text className="text-sm font-semibold text-foreground mb-2">Operator Information</Text>
+            
+            <View className="gap-2">
+              <View className="flex-row justify-between">
+                <Text className="text-xs text-muted">Name</Text>
+                <Text className="text-sm font-semibold text-foreground">{session?.operatorName || 'N/A'}</Text>
               </View>
-              <View className="flex-1 bg-surface rounded-lg p-4 border border-border">
-                <Text className="text-2xl font-bold text-success">0</Text>
-                <Text className="text-xs text-muted mt-1">Verified</Text>
+              <View className="h-px bg-border" />
+              
+              <View className="flex-row justify-between">
+                <Text className="text-xs text-muted">Mobile</Text>
+                <Text className="text-sm font-semibold text-foreground">
+                  +91 {session?.mobileNumber || 'N/A'}
+                </Text>
+              </View>
+              <View className="h-px bg-border" />
+              
+              <View className="flex-row justify-between">
+                <Text className="text-xs text-muted">Aadhaar</Text>
+                <Text className="text-sm font-semibold text-foreground">
+                  {session?.aadhaarNumber ? `${session.aadhaarNumber.substring(0, 2)}****${session.aadhaarNumber.substring(10)}` : 'N/A'}
+                </Text>
               </View>
             </View>
           </View>
 
+          {/* Quick Stats */}
           <View className="gap-3">
-            <Text className="text-lg font-bold text-foreground">Menu</Text>
-
-            <TouchableOpacity onPress={() => Alert.alert('Download', 'Download exam data feature coming soon')} className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
-              <View>
-                <Text className="text-foreground font-semibold">Download Exam Data</Text>
-                <Text className="text-xs text-muted mt-1">Download mock or exam data</Text>
+            <Text className="text-sm font-semibold text-foreground">Quick Stats</Text>
+            
+            <View className="flex-row gap-3">
+              <View className="flex-1 bg-primary/10 rounded-lg p-4 border border-primary gap-2">
+                <Text className="text-2xl font-bold text-primary">{stats.total}</Text>
+                <Text className="text-xs text-muted">Total Candidates</Text>
               </View>
-              <Text className="text-xl">→</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => Alert.alert('Candidates', 'Candidate list feature coming soon')} className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
-              <View>
-                <Text className="text-foreground font-semibold">Candidates</Text>
-                <Text className="text-xs text-muted mt-1">View candidate list</Text>
+              
+              <View className="flex-1 bg-success/10 rounded-lg p-4 border border-success gap-2">
+                <Text className="text-2xl font-bold text-success">{stats.marked}</Text>
+                <Text className="text-xs text-muted">Marked Present</Text>
               </View>
-              <Text className="text-xl">→</Text>
-            </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity onPress={() => Alert.alert('Exam Day', 'Exam workflow feature coming soon')} className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
-              <View>
-                <Text className="text-foreground font-semibold">Exam Day</Text>
-                <Text className="text-xs text-muted mt-1">Start exam workflow</Text>
+            <View className="flex-row gap-3">
+              <View className="flex-1 bg-warning/10 rounded-lg p-4 border border-warning gap-2">
+                <Text className="text-2xl font-bold text-warning">{stats.verified}</Text>
+                <Text className="text-xs text-muted">Verified</Text>
               </View>
-              <Text className="text-xl">→</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => Alert.alert('Sync', 'Data synced successfully')} className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
-              <View>
-                <Text className="text-foreground font-semibold">Sync Data</Text>
-                <Text className="text-xs text-muted mt-1">Sync with server</Text>
+              
+              <View className="flex-1 bg-error/10 rounded-lg p-4 border border-error gap-2">
+                <Text className="text-2xl font-bold text-error">{stats.pending}</Text>
+                <Text className="text-xs text-muted">Pending</Text>
               </View>
-              <Text className="text-xl">→</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => Alert.alert('Settings', 'Settings feature coming soon')} className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
-              <View>
-                <Text className="text-foreground font-semibold">Settings</Text>
-                <Text className="text-xs text-muted mt-1">App settings</Text>
-              </View>
-              <Text className="text-xl">→</Text>
-            </TouchableOpacity>
+            </View>
           </View>
 
+          {/* Info Box */}
+          <View className="bg-primary/10 border border-primary rounded-lg p-4 gap-2">
+            <Text className="text-xs font-semibold text-primary">Today's Tasks</Text>
+            <Text className="text-xs text-foreground leading-relaxed">
+              1. Download exam data{'\n'}
+              2. Mark candidate attendance{'\n'}
+              3. Perform biometric verification{'\n'}
+              4. Sync data with server
+            </Text>
+          </View>
+
+          {/* Logout Button */}
           <TouchableOpacity
             onPress={handleLogout}
-            className="bg-error/10 border border-error rounded-lg p-4 items-center mt-auto"
+            className="bg-error rounded-lg p-4 items-center"
           >
-            <Text className="text-error font-bold">🚪 Logout</Text>
+            <Text className="text-white font-semibold text-base">Logout</Text>
           </TouchableOpacity>
-
-          <View className="bg-muted/10 rounded-lg p-3 mt-4">
-            <Text className="text-xs text-muted font-mono">
-              Token: {session.token.slice(0, 20)}...
-            </Text>
-            <Text className="text-xs text-muted font-mono mt-1">
-              Expires: {new Date(session.expiresAt).toLocaleDateString()}
-            </Text>
-          </View>
         </View>
       </ScrollView>
     </ScreenContainer>

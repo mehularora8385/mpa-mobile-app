@@ -1,235 +1,213 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, FlatList } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
-import { syncService } from '@/lib/sync-service';
-import { offlineStorage, SyncLog } from '@/lib/offline-storage';
-import * as Haptics from 'expo-haptics';
+import { mockCandidatesService } from '@/lib/mock-candidates';
+import { useState, useEffect } from 'react';
 
-export default function SyncScreen() {
+interface SyncLog {
+  id: string;
+  timestamp: string;
+  status: 'success' | 'failed';
+  candidateCount: number;
+  message: string;
+}
+
+export default function DataSyncScreen() {
+  const [syncing, setSyncing] = useState(false);
+  const [syncedCount, setSyncedCount] = useState(0);
+  const [unsyncedCount, setUnsyncedCount] = useState(0);
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncProgress, setSyncProgress] = useState(0);
-  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [pendingChanges, setPendingChanges] = useState(0);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   useEffect(() => {
-    loadSyncData();
+    loadSyncStatus();
   }, []);
 
-  const loadSyncData = async () => {
-    try {
-      setLoading(true);
-      // Load sync logs
-      const logs = await offlineStorage.getSyncLogs();
-      setSyncLogs(logs);
-
-      // Get last sync time
-      if (logs.length > 0) {
-        const lastSync = logs.reduce((latest, log) => 
-          log.timestamp > latest.timestamp ? log : latest
-        );
-        setLastSyncTime(lastSync.timestamp);
-      }
-
-      // Count pending changes
-      const exams = await offlineStorage.getAllExamData();
-      const pending = exams.reduce((count, exam) => {
-        return count + exam.candidates.filter(c => c.status !== 'pending').length;
-      }, 0);
-      setPendingChanges(pending);
-    } catch (error) {
-      console.error('Error loading sync data:', error);
-    } finally {
-      setLoading(false);
-    }
+  const loadSyncStatus = () => {
+    const candidates = mockCandidatesService.getAllCandidates();
+    const synced = candidates.filter(c => c.synced).length;
+    const unsynced = candidates.filter(c => !c.synced).length;
+    setSyncedCount(synced);
+    setUnsyncedCount(unsynced);
   };
 
   const handleSync = async () => {
+    setSyncing(true);
     try {
-      setIsSyncing(true);
-      setSyncProgress(0);
-
-      // Simulate sync progress
-      const interval = setInterval(() => {
-        setSyncProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(interval);
-            return prev;
-          }
-          return prev + Math.random() * 30;
-        });
-      }, 500);
-
-      // Perform sync
-      // await syncService.syncAllData((progress: number) => {
-      //   setSyncProgress(Math.min(progress, 90));
-      // });
-      // Simulate sync for now
+      // Simulate sync process
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      clearInterval(interval);
-      setSyncProgress(100);
+      const candidates = mockCandidatesService.getAllCandidates();
+      const unsyncedCandidates = candidates.filter(c => !c.synced);
 
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Success', 'Data synced successfully');
+      // Mark all as synced
+      unsyncedCandidates.forEach(c => {
+        mockCandidatesService.markSynced(c.rollNo);
+      });
 
-      // Reload sync data
-      await loadSyncData();
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Sync failed';
-      Alert.alert('Error', errorMessage);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      const newLog: SyncLog = {
+        id: Date.now().toString(),
+        timestamp: new Date().toLocaleTimeString(),
+        status: 'success',
+        candidateCount: unsyncedCandidates.length,
+        message: `Synced ${unsyncedCandidates.length} candidates`,
+      };
+
+      setSyncLogs([newLog, ...syncLogs]);
+      setLastSyncTime(new Date().toLocaleTimeString());
+      loadSyncStatus();
+
+      Alert.alert('Success', `${unsyncedCandidates.length} candidates synced successfully!`);
+    } catch (err) {
+      const newLog: SyncLog = {
+        id: Date.now().toString(),
+        timestamp: new Date().toLocaleTimeString(),
+        status: 'failed',
+        candidateCount: 0,
+        message: 'Sync failed',
+      };
+
+      setSyncLogs([newLog, ...syncLogs]);
+      Alert.alert('Error', 'Failed to sync data');
     } finally {
-      setIsSyncing(false);
-      setSyncProgress(0);
+      setSyncing(false);
     }
   };
 
-  const renderSyncLog = ({ item }: { item: SyncLog }) => (
-    <View className="bg-surface border border-border rounded-lg p-4 mb-3">
-      <View className="flex-row items-center justify-between mb-2">
-        <Text className="font-semibold text-foreground">Exam {item.examId}</Text>
-        <View
-          className={`px-2 py-1 rounded ${
-            item.status === 'success'
-              ? 'bg-success/20'
-              : item.status === 'failed'
-              ? 'bg-error/20'
-              : 'bg-warning/20'
-          }`}
-        >
-          <Text
-            className={`text-xs font-semibold ${
-              item.status === 'success'
-                ? 'text-success'
-                : item.status === 'failed'
-                ? 'text-error'
-                : 'text-warning'
-            }`}
-          >
-            {item.status.toUpperCase()}
-          </Text>
-        </View>
-      </View>
-
-      <View className="gap-1">
-        <View className="flex-row justify-between">
-          <Text className="text-xs text-muted">Records Synced</Text>
-          <Text className="text-xs text-foreground font-semibold">{item.dataCount}</Text>
-        </View>
-        <View className="flex-row justify-between">
-          <Text className="text-xs text-muted">Time</Text>
-          <Text className="text-xs text-foreground font-semibold">
-            {new Date(item.timestamp).toLocaleString()}
-          </Text>
-        </View>
-        {item.error && (
-          <View className="flex-row justify-between">
-            <Text className="text-xs text-muted">Error</Text>
-            <Text className="text-xs text-error font-semibold">{item.error}</Text>
-          </View>
-        )}
-      </View>
-    </View>
-  );
-
-  if (loading) {
-    return (
-      <ScreenContainer className="bg-background items-center justify-center">
-        <ActivityIndicator size="large" color="#0066CC" />
-      </ScreenContainer>
-    );
-  }
+  const getSyncPercentage = () => {
+    const total = syncedCount + unsyncedCount;
+    if (total === 0) return 0;
+    return Math.round((syncedCount / total) * 100);
+  };
 
   return (
-    <ScreenContainer className="bg-background">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-6">
-        <View className="gap-6">
+    <ScreenContainer className="p-4">
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View className="gap-4">
           {/* Header */}
           <View className="gap-2">
-            <Text className="text-3xl font-bold text-foreground">Sync Data</Text>
-            <Text className="text-sm text-muted">Manage offline data synchronization</Text>
+            <Text className="text-2xl font-bold text-foreground">Data Sync</Text>
+            <Text className="text-sm text-muted">Synchronize candidate data with server</Text>
           </View>
 
-          {/* Status Cards */}
-          <View className="gap-3">
-            {/* Last Sync */}
-            <View className="bg-surface border border-border rounded-lg p-4">
-              <Text className="text-xs font-semibold text-muted mb-1">Last Sync</Text>
-              <Text className="text-lg font-bold text-foreground">
-                {lastSyncTime
-                  ? new Date(lastSyncTime).toLocaleString()
-                  : 'Never synced'}
-              </Text>
-            </View>
+          {/* Sync Status Card */}
+          <View className="bg-surface border border-border rounded-lg p-6 gap-4">
+            <Text className="text-sm font-semibold text-foreground">Sync Status</Text>
 
-            {/* Pending Changes */}
-            <View className="bg-surface border border-border rounded-lg p-4">
-              <Text className="text-xs font-semibold text-muted mb-1">Pending Changes</Text>
-              <Text className="text-lg font-bold text-primary">{pendingChanges}</Text>
-            </View>
-          </View>
-
-          {/* Sync Progress */}
-          {isSyncing && syncProgress > 0 && (
-            <View className="bg-surface border border-border rounded-lg p-4 gap-2">
+            {/* Progress Bar */}
+            <View className="gap-2">
               <View className="flex-row justify-between items-center">
-                <Text className="text-sm font-semibold text-foreground">Syncing...</Text>
-                <Text className="text-sm text-muted">{Math.round(syncProgress)}%</Text>
+                <Text className="text-xs text-muted">Progress</Text>
+                <Text className="text-sm font-semibold text-foreground">{getSyncPercentage()}%</Text>
               </View>
-              <View className="h-2 bg-border rounded-full overflow-hidden">
+              <View className="h-3 bg-border rounded-full overflow-hidden">
                 <View
-                  className="h-full bg-primary"
-                  style={{ width: `${syncProgress}%` }}
+                  className="h-full bg-success"
+                  style={{ width: `${getSyncPercentage()}%` }}
                 />
               </View>
             </View>
-          )}
+
+            {/* Stats */}
+            <View className="gap-3">
+              <View className="flex-row justify-between items-center">
+                <View className="gap-1">
+                  <Text className="text-xs text-muted">Synced</Text>
+                  <Text className="text-2xl font-bold text-success">{syncedCount}</Text>
+                </View>
+                <View className="w-px h-12 bg-border" />
+                <View className="gap-1 flex-1">
+                  <Text className="text-xs text-muted">Pending</Text>
+                  <Text className="text-2xl font-bold text-warning">{unsyncedCount}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Last Sync Time */}
+            {lastSyncTime && (
+              <View className="pt-3 border-t border-border">
+                <Text className="text-xs text-muted">Last Sync: {lastSyncTime}</Text>
+              </View>
+            )}
+          </View>
 
           {/* Sync Button */}
           <TouchableOpacity
             onPress={handleSync}
-            disabled={isSyncing}
-            className={`py-4 rounded-lg items-center ${
-              isSyncing ? 'bg-gray-400' : 'bg-primary'
+            disabled={syncing || unsyncedCount === 0}
+            className={`rounded-lg p-4 items-center flex-row justify-center gap-2 ${
+              unsyncedCount === 0 ? 'bg-success/20' : syncing ? 'bg-warning/20' : 'bg-primary'
             }`}
           >
-            {isSyncing ? (
-              <ActivityIndicator color="#fff" />
+            {syncing ? (
+              <>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text className="text-white font-semibold">Syncing...</Text>
+              </>
+            ) : unsyncedCount === 0 ? (
+              <>
+                <Text className="text-success font-semibold">✓ All Synced</Text>
+              </>
             ) : (
-              <Text className="text-white font-semibold text-lg">Sync Now</Text>
+              <>
+                <Text className="text-white font-semibold">↑ Sync Now ({unsyncedCount})</Text>
+              </>
             )}
           </TouchableOpacity>
 
-          {/* Sync History */}
-          <View className="gap-3">
-            <Text className="text-lg font-bold text-foreground">Sync History</Text>
-            {syncLogs.length > 0 ? (
-              <FlatList
-                data={syncLogs}
-                renderItem={renderSyncLog}
-                keyExtractor={item => item.syncId}
-                scrollEnabled={false}
-              />
-            ) : (
-              <View className="bg-surface border border-border rounded-lg p-6 items-center gap-2">
-                <Text className="text-foreground font-semibold">No sync history</Text>
-                <Text className="text-xs text-muted text-center">
-                  Sync data to see history
-                </Text>
-              </View>
-            )}
+          {/* Sync Summary */}
+          <View className="bg-primary/10 border border-primary rounded-lg p-4 gap-2">
+            <Text className="text-xs font-semibold text-primary">Sync Summary</Text>
+            <View className="gap-1">
+              <Text className="text-xs text-foreground">Total Candidates: {syncedCount + unsyncedCount}</Text>
+              <Text className="text-xs text-foreground">Synced: {syncedCount}</Text>
+              <Text className="text-xs text-foreground">Pending: {unsyncedCount}</Text>
+              {unsyncedCount === 0 && (
+                <Text className="text-xs text-success font-semibold mt-2">✓ 0 candidates pending</Text>
+              )}
+            </View>
           </View>
 
+          {/* Sync Logs */}
+          {syncLogs.length > 0 && (
+            <View className="gap-2">
+              <Text className="text-sm font-semibold text-foreground">Sync Logs</Text>
+              <View className="gap-2">
+                {syncLogs.map(log => (
+                  <View
+                    key={log.id}
+                    className={`rounded-lg p-3 border ${
+                      log.status === 'success'
+                        ? 'bg-success/10 border-success'
+                        : 'bg-error/10 border-error'
+                    }`}
+                  >
+                    <View className="flex-row justify-between items-start">
+                      <View className="flex-1">
+                        <Text className={`text-xs font-semibold ${log.status === 'success' ? 'text-success' : 'text-error'}`}>
+                          {log.status === 'success' ? '✓' : '✗'} {log.message}
+                        </Text>
+                        <Text className="text-xs text-muted mt-1">{log.timestamp}</Text>
+                      </View>
+                      {log.candidateCount > 0 && (
+                        <View className="bg-primary/20 rounded-full px-2 py-1">
+                          <Text className="text-xs font-semibold text-primary">{log.candidateCount}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
           {/* Info Box */}
-          <View className="bg-primary/10 border border-primary rounded-lg p-4 gap-2">
-            <Text className="font-semibold text-primary">Information</Text>
-            <Text className="text-sm text-foreground">
-              • Sync requires internet connection{'\n'}
-              • All changes will be uploaded{'\n'}
-              • Synced data is encrypted{'\n'}
-              • Sync status is logged for audit
+          <View className="bg-primary/10 border border-primary rounded-lg p-4 gap-2 mt-4">
+            <Text className="text-xs font-semibold text-primary">ℹ️ Information</Text>
+            <Text className="text-xs text-foreground leading-relaxed">
+              • Sync uploads candidate data to server{'\n'}
+              • Requires internet connection{'\n'}
+              • You can work offline before sync{'\n'}
+              • Tap "Sync Now" to upload pending data
             </Text>
           </View>
         </View>

@@ -1,247 +1,177 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Pressable } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { ScrollView, Text, View, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
-import { syncService } from '@/lib/sync-service';
-import { offlineStorage } from '@/lib/offline-storage';
-import * as Haptics from 'expo-haptics';
+import { useState } from 'react';
 
-interface Exam {
+interface ExamData {
   id: string;
-  name: string;
   date: string;
+  day: string;
+  candidates: number;
+  status: 'ready' | 'downloading' | 'downloaded';
 }
 
-interface Centre {
-  code: string;
-  name: string;
-}
+export default function DataDownloadScreen() {
+  const [activeTab, setActiveTab] = useState<'mock' | 'exam'>('mock');
+  const [downloading, setDownloading] = useState<string | null>(null);
 
-export default function DownloadScreen() {
-  const [exams, setExams] = useState<Exam[]>([]);
-  const [centres, setCentres] = useState<Centre[]>([]);
-  const [selectedExam, setSelectedExam] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedCentre, setSelectedCentre] = useState('');
-  const [dataType, setDataType] = useState<'mock' | 'exam'>('mock');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [error, setError] = useState('');
+  const mockExams: ExamData[] = [
+    { id: 'mock-1', date: '2026-01-15', day: 'Wednesday', candidates: 45, status: 'ready' },
+    { id: 'mock-2', date: '2026-01-16', day: 'Thursday', candidates: 52, status: 'downloaded' },
+    { id: 'mock-3', date: '2026-01-17', day: 'Friday', candidates: 48, status: 'ready' },
+  ];
 
-  useEffect(() => {
-    // In a real app, fetch exams from API
-    setExams([
-      { id: '1', name: 'Mathematics', date: '2026-01-15' },
-      { id: '2', name: 'English', date: '2026-01-16' },
-      { id: '3', name: 'Science', date: '2026-01-17' },
-    ]);
+  const examData: ExamData[] = [
+    { id: 'exam-1', date: '2026-01-20', day: 'Monday', candidates: 50, status: 'ready' },
+    { id: 'exam-2', date: '2026-01-21', day: 'Tuesday', candidates: 55, status: 'ready' },
+    { id: 'exam-3', date: '2026-01-22', day: 'Wednesday', candidates: 49, status: 'downloaded' },
+  ];
 
-    setCentres([
-      { code: 'C001', name: 'Centre 1 - Delhi' },
-      { code: 'C002', name: 'Centre 2 - Mumbai' },
-      { code: 'C003', name: 'Centre 3 - Bangalore' },
-    ]);
-  }, []);
+  const handleDownload = async (examId: string) => {
+    setDownloading(examId);
+    
+    // Simulate download
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    setDownloading(null);
+    Alert.alert('Success', 'Exam data downloaded successfully!');
+  };
 
-  const handleDownload = async () => {
-    try {
-      setError('');
-      setLoading(true);
-
-      if (!selectedExam || !selectedCentre || !password.trim()) {
-        setError('Please fill all required fields');
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-
-      // Download exam data
-      await syncService.downloadExamData(
-        selectedExam,
-        selectedCentre,
-        dataType,
-        password,
-        (progress) => setDownloadProgress(progress)
-      );
-
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Success', `${dataType === 'mock' ? 'Mock' : 'Exam'} data downloaded successfully`);
-
-      // Reset form
-      setPassword('');
-      setDownloadProgress(0);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Download failed';
-      setError(errorMessage);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setLoading(false);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ready':
+        return 'bg-primary/10 border-primary';
+      case 'downloading':
+        return 'bg-warning/10 border-warning';
+      case 'downloaded':
+        return 'bg-success/10 border-success';
+      default:
+        return 'bg-surface border-border';
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'ready':
+        return 'Ready to Download';
+      case 'downloading':
+        return 'Downloading...';
+      case 'downloaded':
+        return 'Downloaded ✓';
+      default:
+        return 'Unknown';
+    }
+  };
+
+  const getStatusTextColor = (status: string) => {
+    switch (status) {
+      case 'ready':
+        return 'text-primary';
+      case 'downloading':
+        return 'text-warning';
+      case 'downloaded':
+        return 'text-success';
+      default:
+        return 'text-foreground';
+    }
+  };
+
+  const exams = activeTab === 'mock' ? mockExams : examData;
+
   return (
-    <ScreenContainer className="bg-background">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-6">
-        <View className="gap-6">
+    <ScreenContainer className="p-4">
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View className="gap-4">
           {/* Header */}
           <View className="gap-2">
-            <Text className="text-3xl font-bold text-primary">Download Exam Data</Text>
-            <Text className="text-sm text-muted">
-              Download candidate data for {dataType === 'mock' ? 'mock' : 'actual'} exam
-            </Text>
+            <Text className="text-2xl font-bold text-foreground">Data Download</Text>
+            <Text className="text-sm text-muted">Download exam candidate data</Text>
           </View>
 
-          {/* Error Message */}
-          {error ? (
-            <View className="bg-error/10 border border-error rounded-lg p-4">
-              <Text className="text-error font-medium">{error}</Text>
-            </View>
-          ) : null}
+          {/* Tabs */}
+          <View className="flex-row gap-3 bg-surface rounded-lg p-1 border border-border">
+            <TouchableOpacity
+              onPress={() => setActiveTab('mock')}
+              className={`flex-1 py-3 rounded-md items-center ${
+                activeTab === 'mock' ? 'bg-primary' : 'bg-transparent'
+              }`}
+            >
+              <Text className={`font-semibold ${activeTab === 'mock' ? 'text-white' : 'text-foreground'}`}>
+                MOCK DATA
+              </Text>
+            </TouchableOpacity>
 
-          {/* Data Type Selection */}
+            <TouchableOpacity
+              onPress={() => setActiveTab('exam')}
+              className={`flex-1 py-3 rounded-md items-center ${
+                activeTab === 'exam' ? 'bg-primary' : 'bg-transparent'
+              }`}
+            >
+              <Text className={`font-semibold ${activeTab === 'exam' ? 'text-white' : 'text-foreground'}`}>
+                EXAM DATA
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Exams List */}
           <View className="gap-3">
-            <Text className="text-sm font-semibold text-foreground">Data Type</Text>
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                onPress={() => setDataType('mock')}
-                className={`flex-1 p-4 rounded-lg border-2 items-center ${
-                  dataType === 'mock' ? 'border-primary bg-primary/10' : 'border-border bg-surface'
-                }`}
+            {exams.map((exam) => (
+              <View
+                key={exam.id}
+                className={`rounded-lg p-4 border gap-3 ${getStatusColor(exam.status)}`}
               >
-                <Text className={`font-semibold ${dataType === 'mock' ? 'text-primary' : 'text-foreground'}`}>
-                  Mock Data
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setDataType('exam')}
-                className={`flex-1 p-4 rounded-lg border-2 items-center ${
-                  dataType === 'exam' ? 'border-primary bg-primary/10' : 'border-border bg-surface'
-                }`}
-              >
-                <Text className={`font-semibold ${dataType === 'exam' ? 'text-primary' : 'text-foreground'}`}>
-                  Exam Data
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+                {/* Exam Info */}
+                <View className="gap-2">
+                  <View className="flex-row justify-between items-start">
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-foreground">
+                        {exam.date} ({exam.day})
+                      </Text>
+                      <Text className="text-xs text-muted mt-1">
+                        {exam.candidates} candidates
+                      </Text>
+                    </View>
+                    <Text className={`text-xs font-semibold ${getStatusTextColor(exam.status)}`}>
+                      {getStatusText(exam.status)}
+                    </Text>
+                  </View>
+                </View>
 
-          {/* Exam Selection */}
-          <View className="gap-2">
-            <Text className="text-sm font-semibold text-foreground">Select Exam</Text>
-            <View className="bg-surface border border-border rounded-lg overflow-hidden">
-              <Picker
-                selectedValue={selectedExam}
-                onValueChange={setSelectedExam}
-                style={{ color: '#1A1A1A' }}
-              >
-                <Picker.Item label="Choose an exam..." value="" />
-                {exams.map(exam => (
-                  <Picker.Item key={exam.id} label={exam.name} value={exam.id} />
-                ))}
-              </Picker>
-            </View>
-          </View>
-
-          {/* Date Selection */}
-          {selectedExam && (
-            <View className="gap-2">
-              <Text className="text-sm font-semibold text-foreground">Exam Date</Text>
-              <View className="bg-surface border border-border rounded-lg p-4">
-                <Text className="text-foreground">
-                  {exams.find(e => e.id === selectedExam)?.date || 'Select an exam'}
-                </Text>
+                {/* Download Button */}
+                <TouchableOpacity
+                  onPress={() => handleDownload(exam.id)}
+                  disabled={downloading === exam.id || exam.status === 'downloaded'}
+                  className={`py-3 rounded-lg items-center flex-row justify-center gap-2 ${
+                    exam.status === 'downloaded'
+                      ? 'bg-success/20'
+                      : downloading === exam.id
+                      ? 'bg-warning/20'
+                      : 'bg-primary'
+                  }`}
+                >
+                  {downloading === exam.id ? (
+                    <>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <Text className="text-white font-semibold text-sm">Downloading...</Text>
+                    </>
+                  ) : exam.status === 'downloaded' ? (
+                    <>
+                      <Text className="text-success font-semibold text-sm">✓ Downloaded</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text className="text-white font-semibold text-sm">↓ Download</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
-            </View>
-          )}
-
-          {/* Centre Selection */}
-          <View className="gap-2">
-            <Text className="text-sm font-semibold text-foreground">Select Centre</Text>
-            <View className="bg-surface border border-border rounded-lg overflow-hidden">
-              <Picker
-                selectedValue={selectedCentre}
-                onValueChange={setSelectedCentre}
-                style={{ color: '#1A1A1A' }}
-              >
-                <Picker.Item label="Choose a centre..." value="" />
-                {centres.map(centre => (
-                  <Picker.Item key={centre.code} label={centre.name} value={centre.code} />
-                ))}
-              </Picker>
-            </View>
+            ))}
           </View>
-
-          {/* Password Input */}
-          <View className="gap-2">
-            <Text className="text-sm font-semibold text-foreground">
-              {dataType === 'mock' ? 'Mock Password' : 'Exam Password'}
-            </Text>
-            <Text className="text-xs text-muted">
-              Enter the password provided by admin panel
-            </Text>
-            <View className="flex-row items-center bg-surface border border-border rounded-lg">
-              <TextInput
-                className="flex-1 p-4 text-foreground"
-                placeholder="Enter password"
-                placeholderTextColor="#999"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                editable={!loading}
-              />
-              <TouchableOpacity
-                onPress={() => setShowPassword(!showPassword)}
-                className="px-4"
-                disabled={loading}
-              >
-                <Text className="text-primary font-semibold text-sm">
-                  {showPassword ? 'Hide' : 'Show'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Download Progress */}
-          {loading && downloadProgress > 0 && (
-            <View className="gap-2">
-              <View className="flex-row justify-between items-center">
-                <Text className="text-sm font-semibold text-foreground">Downloading...</Text>
-                <Text className="text-sm text-muted">{downloadProgress}%</Text>
-              </View>
-              <View className="h-2 bg-border rounded-full overflow-hidden">
-                <View
-                  className="h-full bg-primary"
-                  style={{ width: `${downloadProgress}%` }}
-                />
-              </View>
-            </View>
-          )}
-
-          {/* Download Button */}
-          <Pressable
-            onPress={handleDownload}
-            disabled={loading || !selectedExam || !selectedCentre || !password}
-            style={({ pressed }: any) => ([
-              { backgroundColor: '#0066CC', borderRadius: 8, padding: 16, alignItems: 'center' },
-              pressed && !loading && { opacity: 0.8 },
-            ])}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white font-semibold text-lg">Download Data</Text>
-            )}
-          </Pressable>
 
           {/* Info Box */}
-          <View className="bg-primary/10 border border-primary rounded-lg p-4 gap-2">
-            <Text className="font-semibold text-primary">Information</Text>
-            <Text className="text-sm text-foreground">
-              • Download requires internet connection{'\n'}
-              • Data will be stored locally on device{'\n'}
-              • You can work offline after download{'\n'}
-              • Sync data when internet is available
+          <View className="bg-primary/10 border border-primary rounded-lg p-4 gap-2 mt-4">
+            <Text className="text-xs font-semibold text-primary">ℹ️ Information</Text>
+            <Text className="text-xs text-foreground leading-relaxed">
+              Download {activeTab === 'mock' ? 'mock' : 'exam'} data to get candidate details for biometric verification.
             </Text>
           </View>
         </View>

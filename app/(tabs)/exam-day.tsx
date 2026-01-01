@@ -1,241 +1,316 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Dimensions } from 'react-native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { ScrollView, Text, View, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { ScreenContainer } from '@/components/screen-container';
-import { biometricService } from '@/lib/biometric-service';
-import * as Haptics from 'expo-haptics';
+import { mockCandidatesService } from '@/lib/mock-candidates';
+import { useState } from 'react';
 
-interface CandidateForExam {
-  candidateId: string;
-  name: string;
-  rollNumber: string;
-  photoUri?: string;
-}
+export default function VerificationScreen() {
+  const [step, setStep] = useState<'search' | 'capture' | 'fingerprint' | 'omr'>('search');
+  const [rollNo, setRollNo] = useState('');
+  const [candidate, setCandidate] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [photoTaken, setPhotoTaken] = useState(false);
+  const [fingerprintScanned, setFingerprintScanned] = useState(false);
+  const [omrSerial, setOmrSerial] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
-export default function ExamDayScreen() {
-  const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef<CameraView>(null);
-  const [currentCandidate, setCurrentCandidate] = useState<CandidateForExam | null>(null);
-  const [cameraMode, setCameraMode] = useState<'face' | 'fingerprint'>('face');
-  const [faceMatchPercentage, setFaceMatchPercentage] = useState(0);
-  const [isCapturing, setIsCapturing] = useState(false);
-  const [isMatching, setIsMatching] = useState(false);
-  const [matchResult, setMatchResult] = useState<'success' | 'failed' | null>(null);
-  const [fingerprintStatus, setFingerprintStatus] = useState<'pending' | 'success' | 'failed'>('pending');
-
-  useEffect(() => {
-    if (!permission?.granted) {
-      requestPermission();
+  const handleSearch = async () => {
+    if (!rollNo.trim()) {
+      Alert.alert('Error', 'Please enter a roll number');
+      return;
     }
-  }, [permission]);
 
-  const handleFaceCapture = async () => {
-    if (!cameraRef.current || !currentCandidate) return;
-
+    setLoading(true);
     try {
-      setIsCapturing(true);
-      setIsMatching(true);
+      const found = mockCandidatesService.getCandidateByRollNo(rollNo);
+      if (found) {
+        setCandidate(found);
+        setStep('capture');
+        setPhotoTaken(false);
+        setFingerprintScanned(false);
+        setOmrSerial('');
+      } else {
+        Alert.alert('Not Found', 'Candidate not found');
+        setCandidate(null);
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Failed to search candidate');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Capture photo
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.8,
-        base64: true,
-      });
+  const handleTakePhoto = async () => {
+    setLoading(true);
+    try {
+      // Simulate camera capture
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setPhotoTaken(true);
+      setStep('fingerprint');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to capture photo');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Perform face matching
-      const matchResult = await biometricService.matchFaceWithCandidate(
-        photo.uri,
-        currentCandidate.photoUri || '',
-        currentCandidate.candidateId
+  const handleScanFingerprint = async () => {
+    setLoading(true);
+    try {
+      // Simulate fingerprint scan
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setFingerprintScanned(true);
+      setStep('omr');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to scan fingerprint');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!omrSerial.trim()) {
+      Alert.alert('Error', 'Please enter OMR serial number');
+      return;
+    }
+
+    setVerifying(true);
+    try {
+      const updated = mockCandidatesService.markVerified(
+        candidate.rollNo,
+        'photo_uri',
+        'fingerprint_data',
+        omrSerial
       );
-      const matchPercentage = matchResult.matchPercentage;
-
-      setFaceMatchPercentage(matchPercentage);
-
-      if (matchPercentage >= 90) {
-        setMatchResult('success');
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Success', `Face match: ${matchPercentage}%\nProceeding to fingerprint verification`);
-        setCameraMode('fingerprint');
-      } else {
-        setMatchResult('failed');
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Low Match', `Face match: ${matchPercentage}%\nPlease try again`);
+      if (updated) {
+        Alert.alert('Success', `${candidate.name} verified successfully ✓`);
+        // Reset
+        setRollNo('');
+        setCandidate(null);
+        setStep('search');
+        setPhotoTaken(false);
+        setFingerprintScanned(false);
+        setOmrSerial('');
       }
-    } catch (error) {
-      console.error('Face capture error:', error);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Failed to capture face');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to verify candidate');
     } finally {
-      setIsCapturing(false);
-      setIsMatching(false);
+      setVerifying(false);
     }
   };
 
-  const handleFingerprintCapture = async () => {
-    try {
-      setIsCapturing(true);
-
-      // Authenticate with fingerprint
-      const isAuthenticated = await biometricService.authenticate();
-
-      if (isAuthenticated) {
-        setFingerprintStatus('success');
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Success', 'Fingerprint verified successfully');
-        
-        // Mark candidate as present
-        // await offlineStorage.updateCandidateStatus(currentCandidate.candidateId, 'present');
-        
-        // Move to next candidate
-        setCurrentCandidate(null);
-        setCameraMode('face');
-        setFaceMatchPercentage(0);
-        setMatchResult(null);
-        setFingerprintStatus('pending');
-      } else {
-        setFingerprintStatus('failed');
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        Alert.alert('Failed', 'Fingerprint verification failed. Please try again');
-      }
-    } catch (error) {
-      console.error('Fingerprint capture error:', error);
-      setFingerprintStatus('failed');
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', 'Fingerprint verification failed');
-    } finally {
-      setIsCapturing(false);
-    }
+  const handleReset = () => {
+    setRollNo('');
+    setCandidate(null);
+    setStep('search');
+    setPhotoTaken(false);
+    setFingerprintScanned(false);
+    setOmrSerial('');
   };
-
-  if (!permission?.granted) {
-    return (
-      <ScreenContainer className="bg-background items-center justify-center gap-4">
-        <Text className="text-foreground font-semibold">Camera permission required</Text>
-        <TouchableOpacity
-          onPress={requestPermission}
-          className="bg-primary rounded-lg px-6 py-3"
-        >
-          <Text className="text-white font-semibold">Grant Permission</Text>
-        </TouchableOpacity>
-      </ScreenContainer>
-    );
-  }
-
-  if (!currentCandidate) {
-    return (
-      <ScreenContainer className="bg-background items-center justify-center gap-4">
-        <Text className="text-foreground font-semibold">Select a candidate to proceed</Text>
-        <TouchableOpacity
-          onPress={() => setCurrentCandidate({
-            candidateId: '1',
-            name: 'John Doe',
-            rollNumber: 'A001',
-          })}
-          className="bg-primary rounded-lg px-6 py-3"
-        >
-          <Text className="text-white font-semibold">Start Exam Day</Text>
-        </TouchableOpacity>
-      </ScreenContainer>
-    );
-  }
 
   return (
-    <ScreenContainer className="bg-background" edges={['top', 'left', 'right', 'bottom']}>
-      <View className="flex-1">
-        {/* Camera View */}
-        <CameraView
-          ref={cameraRef}
-          style={{ flex: 1 }}
-          facing="front"
-        />
-
-        {/* Overlay */}
-        <View className="absolute inset-0 bg-black/30 flex items-center justify-center">
-          {/* Face Oval Guide */}
-          {cameraMode === 'face' && (
-            <View className="w-48 h-64 border-4 border-primary rounded-3xl" />
-          )}
-
-          {/* Fingerprint Guide */}
-          {cameraMode === 'fingerprint' && (
-            <View className="w-32 h-32 border-4 border-primary rounded-full" />
-          )}
-        </View>
-
-        {/* Candidate Info */}
-        <View className="absolute top-0 left-0 right-0 bg-black/50 p-4">
-          <Text className="text-white font-semibold text-lg">{currentCandidate.name}</Text>
-          <Text className="text-white/80 text-sm">Roll: {currentCandidate.rollNumber}</Text>
-        </View>
-
-        {/* Status Info */}
-        <View className="absolute bottom-0 left-0 right-0 bg-black/50 p-4 gap-3">
-          {/* Mode Indicator */}
-          <View className="flex-row gap-2">
-            <View
-              className={`flex-1 py-2 rounded-lg items-center ${
-                cameraMode === 'face' ? 'bg-primary' : 'bg-gray-600'
-              }`}
-            >
-              <Text className="text-white font-semibold text-sm">Face Capture</Text>
-            </View>
-            <View
-              className={`flex-1 py-2 rounded-lg items-center ${
-                cameraMode === 'fingerprint' ? 'bg-primary' : 'bg-gray-600'
-              }`}
-            >
-              <Text className="text-white font-semibold text-sm">Fingerprint</Text>
-            </View>
+    <ScreenContainer className="p-4">
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <View className="gap-4">
+          {/* Header */}
+          <View className="gap-2">
+            <Text className="text-2xl font-bold text-foreground">Verification</Text>
+            <Text className="text-sm text-muted">Biometric verification process</Text>
           </View>
 
-          {/* Face Match Percentage */}
-          {cameraMode === 'face' && faceMatchPercentage > 0 && (
-            <View className="bg-white/10 rounded-lg p-3 gap-2">
-              <View className="flex-row justify-between items-center">
-                <Text className="text-white font-semibold">Face Match</Text>
-                <Text className={`text-lg font-bold ${faceMatchPercentage >= 90 ? 'text-green-400' : 'text-yellow-400'}`}>
-                  {faceMatchPercentage}%
-                </Text>
-              </View>
-              <View className="h-2 bg-white/20 rounded-full overflow-hidden">
-                <View
-                  className={`h-full ${faceMatchPercentage >= 90 ? 'bg-green-400' : 'bg-yellow-400'}`}
-                  style={{ width: `${faceMatchPercentage}%` }}
-                />
+          {/* Step 1: Search */}
+          {step === 'search' && (
+            <View className="gap-4">
+              <View className="gap-2">
+                <Text className="text-sm font-semibold text-foreground">Enter Roll Number</Text>
+                <View className="flex-row gap-2">
+                  <TextInput
+                    className="flex-1 bg-surface border border-border rounded-lg p-3 text-foreground"
+                    placeholder="Roll number"
+                    placeholderTextColor="#999"
+                    value={rollNo}
+                    onChangeText={setRollNo}
+                    editable={!loading}
+                    keyboardType="numeric"
+                  />
+                  <TouchableOpacity
+                    onPress={handleSearch}
+                    disabled={loading || !rollNo.trim()}
+                    className="bg-primary rounded-lg px-4 items-center justify-center"
+                  >
+                    {loading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text className="text-white font-semibold">Search</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
 
-          {/* Capture Button */}
-          <TouchableOpacity
-            onPress={cameraMode === 'face' ? handleFaceCapture : handleFingerprintCapture}
-            disabled={isCapturing || isMatching}
-            className={`py-3 rounded-lg items-center ${
-              isCapturing || isMatching ? 'bg-gray-600' : 'bg-primary'
-            }`}
-          >
-            {isCapturing || isMatching ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white font-semibold text-lg">
-                {cameraMode === 'face' ? 'Capture Face' : 'Verify Fingerprint'}
-              </Text>
-            )}
-          </TouchableOpacity>
+          {/* Step 2: Capture Photo */}
+          {step === 'capture' && candidate && (
+            <View className="gap-4">
+              <View className="bg-surface border border-border rounded-lg p-4 gap-3">
+                <Text className="text-sm font-semibold text-foreground">Candidate: {candidate.name}</Text>
+                <Text className="text-xs text-muted">Roll: {candidate.rollNo}</Text>
+              </View>
 
-          {/* Skip Button */}
-          <TouchableOpacity
-            onPress={() => {
-              setCurrentCandidate(null);
-              setCameraMode('face');
-            }}
-            className="py-2 rounded-lg items-center bg-white/10"
-          >
-            <Text className="text-white font-semibold">Skip Candidate</Text>
-          </TouchableOpacity>
+              <View className="gap-2">
+                <Text className="text-sm font-semibold text-foreground">Step 1: Take Photo</Text>
+                <View className="bg-primary/10 border-2 border-dashed border-primary rounded-lg p-8 items-center justify-center gap-3">
+                  {photoTaken ? (
+                    <>
+                      <Text className="text-4xl">📷</Text>
+                      <Text className="text-sm font-semibold text-success">Photo Captured ✓</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text className="text-4xl">📸</Text>
+                      <Text className="text-xs text-muted text-center">Position face in frame and tap button</Text>
+                    </>
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleTakePhoto}
+                  disabled={loading || photoTaken}
+                  className={`rounded-lg p-4 items-center ${photoTaken ? 'bg-success/20' : 'bg-primary'}`}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : photoTaken ? (
+                    <Text className="text-success font-semibold">✓ Photo Taken</Text>
+                  ) : (
+                    <Text className="text-white font-semibold">Take Photo</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Step 3: Scan Fingerprint */}
+          {step === 'fingerprint' && candidate && (
+            <View className="gap-4">
+              <View className="bg-surface border border-border rounded-lg p-4 gap-3">
+                <Text className="text-sm font-semibold text-foreground">Candidate: {candidate.name}</Text>
+                <Text className="text-xs text-muted">Roll: {candidate.rollNo}</Text>
+              </View>
+
+              <View className="gap-2">
+                <Text className="text-sm font-semibold text-foreground">Step 2: Scan Fingerprint</Text>
+                <Text className="text-xs text-muted">Using MFS100/MFS110 Scanner</Text>
+
+                <View className="bg-primary/10 border-2 border-dashed border-primary rounded-lg p-8 items-center justify-center gap-3">
+                  {fingerprintScanned ? (
+                    <>
+                      <Text className="text-4xl">👆</Text>
+                      <Text className="text-sm font-semibold text-success">Fingerprint Scanned ✓</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text className="text-4xl">🔍</Text>
+                      <Text className="text-xs text-muted text-center">Place finger on scanner</Text>
+                    </>
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleScanFingerprint}
+                  disabled={loading || fingerprintScanned}
+                  className={`rounded-lg p-4 items-center ${fingerprintScanned ? 'bg-success/20' : 'bg-primary'}`}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : fingerprintScanned ? (
+                    <Text className="text-success font-semibold">✓ Fingerprint Scanned</Text>
+                  ) : (
+                    <Text className="text-white font-semibold">Scan Fingerprint</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Step 4: Enter OMR Serial */}
+          {step === 'omr' && candidate && (
+            <View className="gap-4">
+              <View className="bg-surface border border-border rounded-lg p-4 gap-3">
+                <Text className="text-sm font-semibold text-foreground">Candidate: {candidate.name}</Text>
+                <Text className="text-xs text-muted">Roll: {candidate.rollNo}</Text>
+              </View>
+
+              <View className="gap-2">
+                <Text className="text-sm font-semibold text-foreground">Step 3: OMR Serial Number</Text>
+                <Text className="text-xs text-muted">Enter or scan OMR serial number</Text>
+
+                <View className="flex-row gap-2">
+                  <TextInput
+                    className="flex-1 bg-surface border border-border rounded-lg p-3 text-foreground"
+                    placeholder="OMR-2026-001-15"
+                    placeholderTextColor="#999"
+                    value={omrSerial}
+                    onChangeText={setOmrSerial}
+                    editable={!verifying}
+                  />
+                  <TouchableOpacity
+                    disabled={verifying}
+                    className="bg-primary rounded-lg px-4 items-center justify-center"
+                  >
+                    <Text className="text-white font-semibold text-sm">Scan</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Verification Summary */}
+              <View className="bg-success/10 border border-success rounded-lg p-4 gap-2">
+                <Text className="text-xs font-semibold text-success">Verification Summary</Text>
+                <View className="gap-1">
+                  <Text className="text-xs text-foreground">✓ Photo Captured</Text>
+                  <Text className="text-xs text-foreground">✓ Fingerprint Scanned</Text>
+                  <Text className="text-xs text-foreground">✓ OMR Serial: {omrSerial || 'Pending'}</Text>
+                </View>
+              </View>
+
+              {/* Verify Button */}
+              <TouchableOpacity
+                onPress={handleVerify}
+                disabled={verifying || !omrSerial.trim()}
+                className="bg-success rounded-lg p-4 items-center"
+              >
+                {verifying ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text className="text-white font-semibold text-base">✓ Mark Verified</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Reset Button */}
+          {candidate && (
+            <TouchableOpacity
+              onPress={handleReset}
+              disabled={loading || verifying}
+              className="bg-surface border border-border rounded-lg p-4 items-center"
+            >
+              <Text className="text-foreground font-semibold">Reset</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Info Box */}
+          <View className="bg-primary/10 border border-primary rounded-lg p-4 gap-2 mt-4">
+            <Text className="text-xs font-semibold text-primary">ℹ️ Verification Steps</Text>
+            <Text className="text-xs text-foreground leading-relaxed">
+              1. Enter candidate roll number{'\n'}
+              2. Capture candidate photo{'\n'}
+              3. Scan fingerprint (MFS100/MFS110){'\n'}
+              4. Enter OMR serial number{'\n'}
+              5. Mark verified
+            </Text>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }
