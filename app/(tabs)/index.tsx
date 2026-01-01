@@ -115,17 +115,16 @@ export default function LoginScreen() {
         selfieUri,
       });
       
-      if (result && (result.success || result.operatorId)) {
-        setTimeout(() => {
-          router.replace('/(tabs)/home');
-        }, 500);
+      if (result && (result.success || result.data || result.operatorId)) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        router.replace('/(tabs)/home');
       } else {
         setError('Login failed. Please try again.');
+        setLoading(false);
       }
     } catch (err: any) {
       setError(err?.message || 'An error occurred during login');
       console.error('Login error:', err);
-    } finally {
       setLoading(false);
     }
   };

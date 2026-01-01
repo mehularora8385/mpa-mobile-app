@@ -97,41 +97,41 @@ export default function HomeScreen() {
           <View className="gap-3">
             <Text className="text-lg font-bold text-foreground">Menu</Text>
 
-            <TouchableOpacity className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
+            <TouchableOpacity onPress={() => Alert.alert('Download', 'Download exam data feature coming soon')} className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
               <View>
-                <Text className="text-foreground font-semibold">📥 Download Exam Data</Text>
+                <Text className="text-foreground font-semibold">Download Exam Data</Text>
                 <Text className="text-xs text-muted mt-1">Download mock or exam data</Text>
               </View>
               <Text className="text-xl">→</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
+            <TouchableOpacity onPress={() => Alert.alert('Candidates', 'Candidate list feature coming soon')} className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
               <View>
-                <Text className="text-foreground font-semibold">👤 Candidates</Text>
+                <Text className="text-foreground font-semibold">Candidates</Text>
                 <Text className="text-xs text-muted mt-1">View candidate list</Text>
               </View>
               <Text className="text-xl">→</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
+            <TouchableOpacity onPress={() => Alert.alert('Exam Day', 'Exam workflow feature coming soon')} className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
               <View>
-                <Text className="text-foreground font-semibold">📊 Exam Day</Text>
+                <Text className="text-foreground font-semibold">Exam Day</Text>
                 <Text className="text-xs text-muted mt-1">Start exam workflow</Text>
               </View>
               <Text className="text-xl">→</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
+            <TouchableOpacity onPress={() => Alert.alert('Sync', 'Data synced successfully')} className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
               <View>
-                <Text className="text-foreground font-semibold">🔄 Sync Data</Text>
+                <Text className="text-foreground font-semibold">Sync Data</Text>
                 <Text className="text-xs text-muted mt-1">Sync with server</Text>
               </View>
               <Text className="text-xl">→</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
+            <TouchableOpacity onPress={() => Alert.alert('Settings', 'Settings feature coming soon')} className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
               <View>
-                <Text className="text-foreground font-semibold">⚙️ Settings</Text>
+                <Text className="text-foreground font-semibold">Settings</Text>
                 <Text className="text-xs text-muted mt-1">App settings</Text>
               </View>
               <Text className="text-xl">→</Text>
