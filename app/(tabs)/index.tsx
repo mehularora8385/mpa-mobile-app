@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { ScreenContainer } from '@/components/screen-container';
 import { mockAuthService } from '@/lib/auth-mock';
-import { cameraService } from '@/services/camera-service';
 
 type LoginStep = 'form' | 'camera' | 'review';
 
@@ -12,33 +11,25 @@ export default function LoginScreen() {
   const router = useRouter();
   const cameraRef = useRef<CameraView>(null);
   
-  // Form state
   const [operatorName, setOperatorName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [aadhaarNumber, setAadhaarNumber] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  // Navigation state
   const [currentStep, setCurrentStep] = useState<LoginStep>('form');
   const [selfieUri, setSelfieUri] = useState('');
   const [permission, requestPermission] = useCameraPermissions();
-  const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
 
-  // Check camera permission on mount
   useEffect(() => {
     checkCameraPermission();
   }, []);
 
   const checkCameraPermission = async () => {
     if (permission?.granted) {
-      setCameraPermission(true);
+      return;
     } else if (permission?.canAskAgain) {
-      const result = await requestPermission();
-      setCameraPermission(result?.granted || false);
-    } else {
-      setCameraPermission(false);
+      await requestPermission();
     }
   };
 
@@ -62,14 +53,12 @@ export default function LoginScreen() {
   const handleContinue = async () => {
     if (!validateForm()) return;
     
-    // Request camera permission if needed
-    if (!cameraPermission && permission?.canAskAgain) {
+    if (!permission?.granted && permission?.canAskAgain) {
       const result = await requestPermission();
       if (!result?.granted) {
         setError('Camera permission is required to capture selfie');
         return;
       }
-      setCameraPermission(true);
     }
     
     setCurrentStep('camera');
@@ -153,11 +142,11 @@ export default function LoginScreen() {
               <Text className="text-sm text-muted">Operator Login</Text>
             </View>
 
-            {error && (
+            {error ? (
               <View className="bg-error/10 border border-error rounded-lg p-3">
                 <Text className="text-error text-sm">{error}</Text>
               </View>
-            )}
+            ) : null}
 
             <View className="gap-2">
               <Text className="text-sm font-semibold text-foreground">Operator Name</Text>
@@ -209,7 +198,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             <View className="border border-border rounded-lg p-4 bg-surface mt-4">
-              <Text className="text-xs font-bold text-foreground mb-2">📋 TEST CREDENTIALS:</Text>
+              <Text className="text-xs font-bold text-foreground mb-2">TEST CREDENTIALS:</Text>
               <Text className="text-xs text-muted">Mobile: 9730018733</Text>
               <Text className="text-xs text-muted">Aadhaar: 659999999978</Text>
             </View>
@@ -221,7 +210,7 @@ export default function LoginScreen() {
 
   // STEP 2: Camera Screen with Real Camera
   if (currentStep === 'camera') {
-    if (cameraPermission === false) {
+    if (permission?.granted === false) {
       return (
         <ScreenContainer className="bg-background flex-1 justify-center items-center px-6">
           <View className="gap-4 items-center">
@@ -241,12 +230,12 @@ export default function LoginScreen() {
 
     return (
       <View className="flex-1 bg-black">
-      <CameraView
-        ref={cameraRef}
-        style={{ flex: 1 }}
-        facing="front"
-        onCameraReady={() => setCameraReady(true)}
-      />
+        <CameraView
+          ref={cameraRef}
+          style={{ flex: 1 }}
+          facing="front"
+          onCameraReady={() => setCameraReady(true)}
+        />
         
         <View className="absolute bottom-0 left-0 right-0 bg-black/80 px-6 py-6 gap-3">
           <TouchableOpacity 
@@ -258,7 +247,7 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text className="text-white font-bold text-base">✓ Capture Selfie</Text>
+              <Text className="text-white font-bold text-base">Capture Selfie</Text>
             )}
           </TouchableOpacity>
 
@@ -268,7 +257,7 @@ export default function LoginScreen() {
             className="w-full bg-error py-4 rounded-lg items-center shadow-md"
             activeOpacity={0.7}
           >
-            <Text className="text-white font-bold text-base">✕ Cancel</Text>
+            <Text className="text-white font-bold text-base">Cancel</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -294,7 +283,6 @@ export default function LoginScreen() {
               <Image
                 source={{ uri: selfieUri }}
                 style={{ width: '100%', height: 200, borderRadius: 12, borderWidth: 2 }}
-                className="border-primary"
               />
             </View>
 
@@ -313,11 +301,11 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {error && (
+            {error ? (
               <View className="bg-error/10 border border-error rounded-lg p-3">
                 <Text className="text-error text-sm">{error}</Text>
               </View>
-            )}
+            ) : null}
 
             <TouchableOpacity 
               onPress={handleConfirmLogin} 
@@ -328,7 +316,7 @@ export default function LoginScreen() {
               {loading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text className="text-white font-bold text-lg">Confirm & Login</Text>
+                <Text className="text-white font-bold text-lg">Confirm and Login</Text>
               )}
             </TouchableOpacity>
 
