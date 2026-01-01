@@ -1,17 +1,12 @@
 import { View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useEffect, useState } from "react";
 import React from "react";
-import { useRouter } from "expo-router";
-import { useColors } from "@/hooks/use-colors";
 import { mockAuthService } from "@/lib/auth-mock";
-import LoginScreen from "./index";
+import { LoginForm } from "@/components/login-form";
 import { SidebarNavigation } from "@/components/sidebar-navigation";
 import { Stack } from "expo-router";
 
 export default function TabLayout() {
-  const colors = useColors();
-  const router = useRouter();
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,14 +30,15 @@ export default function TabLayout() {
     }
   };
 
-  // Show login screen if no session
+  // Show login form if no session - NO SIDEBAR, NO TABS
   if (!session) {
-    return <LoginScreen />;
+    return <LoginForm />;
   }
 
+  // Show authenticated app with sidebar
   return (
     <View className="flex-1 flex-row bg-background">
-      {/* Sidebar Navigation */}
+      {/* Sidebar Navigation - ONLY shown when logged in */}
       <SidebarNavigation />
       
       {/* Content Area */}

@@ -2,14 +2,14 @@
 
 ## PHASE 1: OPERATOR ANDROID APP
 
-### CURRENT PHASE: UI REDESIGN & CAMERA FIXES
-- [ ] Fix camera to work on mobile devices (iOS/Android)
-- [ ] Remove mock camera mode for production
-- [ ] Create left sidebar navigation with full text names
-- [ ] Remove bottom tab bar
-- [ ] Add menu items: Home, Candidate Attendance, Candidate Verification, Data Sync, Data Download, Candidates
-- [ ] Style sidebar with big clickable buttons
-- [ ] Test complete flow with new navigation
+### CURRENT PHASE: FIX SIDEBAR VISIBILITY & PROFESSIONAL DESIGN
+- [ ] Hide sidebar on login screen - show only login form
+- [ ] Show sidebar only after successful login
+- [ ] Improve professional design and styling
+- [ ] Fix menu visibility bug (showing before login)
+- [ ] Make login screen full-width and centered
+- [ ] Add proper spacing and padding
+- [ ] Test complete flow with fixed navigation
 
 ### Authentication & Registration
 - [x] NEW: Enhanced login screen with operator name, mobile, aadhaar, selfie
