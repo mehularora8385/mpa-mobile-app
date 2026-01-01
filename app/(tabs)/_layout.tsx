@@ -9,13 +9,14 @@ import { Stack } from "expo-router";
 export default function TabLayout() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     checkSession();
-    // Refresh session every 500ms to detect login changes
-    const interval = setInterval(checkSession, 500);
+    // Refresh session every 300ms to detect login changes quickly
+    const interval = setInterval(checkSession, 300);
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshTrigger]);
 
   const checkSession = async () => {
     try {
@@ -29,6 +30,19 @@ export default function TabLayout() {
       setLoading(false);
     }
   };
+
+  // Listen for storage changes (for web)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      console.log('Storage changed, rechecking session...');
+      checkSession();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange);
+      return () => window.removeEventListener('storage', handleStorageChange);
+    }
+  }, []);
 
   // Show login form if no session - NO SIDEBAR, NO TABS
   if (!session) {

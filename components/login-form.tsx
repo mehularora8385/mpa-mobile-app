@@ -79,9 +79,18 @@ export function LoginForm() {
 
       if (result.success) {
         // Wait for session to be saved
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Refresh the parent layout
-        router.push('/(tabs)/home');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Verify session was saved
+        const savedSession = await mockAuthService.getSession();
+        console.log('Verified saved session:', savedSession);
+        
+        if (savedSession) {
+          // Force a hard refresh by replacing the route
+          router.replace('/(tabs)/home');
+        } else {
+          Alert.alert('Error', 'Session not saved properly');
+        }
       }
     } catch (error) {
       Alert.alert('Error', error instanceof Error ? error.message : 'Login failed');
