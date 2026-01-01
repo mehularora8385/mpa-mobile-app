@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
+import { ScrollView, Text, View, TextInput, TouchableOpacity, ActivityIndicator, Image, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { ScreenContainer } from '@/components/screen-container';
@@ -53,11 +53,22 @@ export default function LoginScreen() {
   const handleContinue = async () => {
     if (!validateForm()) return;
     
+    // Try to request camera permission, but don't block if it fails (for web testing)
     if (!permission?.granted && permission?.canAskAgain) {
-      const result = await requestPermission();
-      if (!result?.granted) {
-        setError('Camera permission is required to capture selfie');
-        return;
+      try {
+        const result = await requestPermission();
+        if (!result?.granted) {
+          // On web, camera permission might not be available - allow proceeding with mock
+          if (Platform.OS === 'web') {
+            console.log('Camera permission not available on web, using mock image');
+          } else {
+            setError('Camera permission is required to capture selfie');
+            return;
+          }
+        }
+      } catch (err) {
+        console.log('Camera permission error:', err);
+        // Continue anyway for web testing
       }
     }
     
@@ -207,20 +218,44 @@ export default function LoginScreen() {
     );
   }
 
-  // STEP 2: Camera Screen with Real Camera
+  // STEP 2: Camera Screen with Real Camera or Mock for Web
   if (currentStep === 'camera') {
-    if (permission?.granted === false) {
+    // Mock camera for web testing
+    if (Platform.OS === 'web' || !permission?.granted) {
+      const handleMockCapture = () => {
+        // Create a mock image URI for testing
+        setSelfieUri('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iIzMzMzMzMyIvPjxjaXJjbGUgY3g9IjIwMCIgY3k9IjE1MCIgcj0iNjAiIGZpbGw9IiM2NjY2NjYiLz48ZWxsaXBzZSBjeD0iMjAwIiBjeT0iMjUwIiByeD0iOTAiIHJ5PSIxMjAiIGZpbGw9IiM2NjY2NjYiLz48dGV4dCB4PSIyMDAiIHk9IjM2MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2NjYyIgZm9udC1zaXplPSIxOCIgZm9udC1mYW1pbHk9IkFyaWFsIj5Nb2NrIFNlbGZpZTwvdGV4dD48L3N2Zz4=');
+        setCurrentStep('review');
+      };
+
       return (
         <ScreenContainer className="bg-background flex-1 justify-center items-center px-6">
           <View className="gap-4 items-center">
-            <Text className="text-2xl font-bold text-foreground">Camera Permission Required</Text>
-            <Text className="text-center text-muted">Please enable camera access in your device settings to capture selfie</Text>
+            <Text className="text-2xl font-bold text-foreground">Camera Preview</Text>
+            <Text className="text-center text-muted text-sm">Web Browser - Using Mock Image for Testing</Text>
+            <View className="w-full h-64 bg-gray-700 rounded-lg items-center justify-center mt-4 mb-4">
+              <Text className="text-gray-400 text-center">📷 Mock Camera Preview</Text>
+            </View>
             <TouchableOpacity 
-              onPress={() => setCurrentStep('form')}
-              className="w-full bg-primary py-4 rounded-lg items-center mt-4"
+              onPress={handleMockCapture}
+              disabled={loading}
+              className="w-full bg-primary py-4 rounded-lg items-center shadow-md"
               activeOpacity={0.7}
             >
-              <Text className="text-white font-bold">Go Back</Text>
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white font-bold text-base">Capture Selfie (Mock)</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => setCurrentStep('form')}
+              disabled={loading}
+              className="w-full bg-error py-4 rounded-lg items-center shadow-md"
+              activeOpacity={0.7}
+            >
+              <Text className="text-white font-bold text-base">Cancel</Text>
             </TouchableOpacity>
           </View>
         </ScreenContainer>

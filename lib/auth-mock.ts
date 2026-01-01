@@ -5,6 +5,7 @@
  */
 
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 export interface OperatorSession {
   operatorId: string;
@@ -32,6 +33,7 @@ class MockAuthService {
   private sessionKey = 'operator_session_mock';
   private operatorsKey = 'operators_mock';
   private mockOperators: Map<string, any> = new Map();
+  private isWeb = Platform.OS === 'web';
 
   private constructor() {
     this.initializeMockData();
@@ -57,13 +59,74 @@ class MockAuthService {
 
     this.mockOperators.set('9876543210', {
       operatorId: 'OP002',
-      operatorName: 'Test Operator',
+      operatorName: 'John Doe',
       mobileNumber: '9876543210',
       aadhaarNumber: '123456789012',
       password: '123456789012',
       selfieUri: 'mock-selfie-uri',
       createdAt: new Date().toISOString(),
     });
+  }
+
+  // Helper to save session (uses localStorage for web, SecureStore for native)
+  private async saveSession(session: OperatorSession): Promise<void> {
+    try {
+      const sessionStr = JSON.stringify(session);
+      if (this.isWeb) {
+        // Use localStorage for web
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem(this.sessionKey, sessionStr);
+          console.log('Session saved to localStorage');
+        }
+      } else {
+        // Use SecureStore for native
+        await SecureStore.setItemAsync(this.sessionKey, sessionStr);
+        console.log('Session saved to SecureStore');
+      }
+    } catch (error) {
+      console.error('Error saving session:', error);
+      throw error;
+    }
+  }
+
+  // Helper to get session (uses localStorage for web, SecureStore for native)
+  private async getStoredSession(): Promise<OperatorSession | null> {
+    try {
+      let sessionStr: string | null = null;
+      
+      if (this.isWeb) {
+        // Use localStorage for web
+        if (typeof window !== 'undefined' && window.localStorage) {
+          sessionStr = window.localStorage.getItem(this.sessionKey);
+          console.log('Session retrieved from localStorage:', sessionStr ? 'found' : 'not found');
+        }
+      } else {
+        // Use SecureStore for native
+        sessionStr = await SecureStore.getItemAsync(this.sessionKey);
+        console.log('Session retrieved from SecureStore:', sessionStr ? 'found' : 'not found');
+      }
+
+      if (!sessionStr) return null;
+      return JSON.parse(sessionStr);
+    } catch (error) {
+      console.error('Error getting session:', error);
+      return null;
+    }
+  }
+
+  // Helper to clear session
+  private async clearSession(): Promise<void> {
+    try {
+      if (this.isWeb) {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.removeItem(this.sessionKey);
+        }
+      } else {
+        await SecureStore.deleteItemAsync(this.sessionKey);
+      }
+    } catch (error) {
+      console.error('Error clearing session:', error);
+    }
   }
 
   async register(data: OperatorRegistration): Promise<void> {
@@ -122,13 +185,8 @@ class MockAuthService {
               expiresAt: Date.now() + 24 * 60 * 60 * 1000,
             };
 
-            // Save session to secure store
-            try {
-              await SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session));
-            } catch (e) {
-              console.log('SecureStore not available in web, skipping save');
-            }
-
+            // Save session using the helper
+            await this.saveSession(session);
             resolve({ success: true, data: session });
             return;
           }
@@ -154,13 +212,8 @@ class MockAuthService {
             expiresAt: Date.now() + 24 * 60 * 60 * 1000,
           };
 
-          // Save session to secure store
-          try {
-            await SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session));
-          } catch (e) {
-            console.log('SecureStore not available in web, skipping save');
-          }
-
+          // Save session using the helper
+          await this.saveSession(session);
           resolve(session);
         } catch (error) {
           reject(error);
@@ -170,49 +223,11 @@ class MockAuthService {
   }
 
   async getSession(): Promise<OperatorSession | null> {
-    try {
-      const sessionStr = await SecureStore.getItemAsync(this.sessionKey);
-      if (!sessionStr) return null;
-      return JSON.parse(sessionStr);
-    } catch (error) {
-      console.error('Error getting session:', error);
-      return null;
-    }
+    return this.getStoredSession();
   }
 
   async logout(): Promise<void> {
-    try {
-      await SecureStore.setItemAsync(this.sessionKey, '');
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
-  }
-
-  async refreshToken(): Promise<OperatorSession> {
-    return new Promise(async (resolve, reject) => {
-      setTimeout(async () => {
-        try {
-          const session: OperatorSession = {
-            operatorId: 'OP001',
-            operatorName: 'Test Operator',
-            mobileNumber: '9730018733',
-            token: `mock-token-${Date.now()}`,
-            refreshToken: `mock-refresh-${Date.now()}`,
-            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-          };
-
-          try {
-            await SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session));
-          } catch (e) {
-            console.log('SecureStore not available in web, skipping save');
-          }
-
-          resolve(session);
-        } catch (error) {
-          reject(error);
-        }
-      }, 500);
-    });
+    await this.clearSession();
   }
 }
 

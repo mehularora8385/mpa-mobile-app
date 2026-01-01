@@ -2,6 +2,15 @@
 
 ## PHASE 1: OPERATOR ANDROID APP
 
+### CURRENT PHASE: UI REDESIGN & CAMERA FIXES
+- [ ] Fix camera to work on mobile devices (iOS/Android)
+- [ ] Remove mock camera mode for production
+- [ ] Create left sidebar navigation with full text names
+- [ ] Remove bottom tab bar
+- [ ] Add menu items: Home, Candidate Attendance, Candidate Verification, Data Sync, Data Download, Candidates
+- [ ] Style sidebar with big clickable buttons
+- [ ] Test complete flow with new navigation
+
 ### Authentication & Registration
 - [x] NEW: Enhanced login screen with operator name, mobile, aadhaar, selfie
 - [x] Live selfie capture for identity verification
@@ -13,6 +22,8 @@
 - [x] APP LOCK: Password screen on app open (Sepl@2026)
 - [x] APP LOCK: Unlock on correct password entry
 - [x] APP LOCK: Lock on app close/background
+- [x] Session persistence with localStorage
+- [x] Logout functionality
 - [ ] Operator OTP verification (admin-generated, on-site only)
 - [ ] Mock password download verification
 - [ ] Exam password download verification
@@ -20,9 +31,7 @@
 - [ ] Aadhaar number input and masking
 - [ ] Auto-generate Operator ID
 - [ ] Password creation and validation
-- [x] Session management and token storage
 - [ ] Remember device functionality
-- [ ] Logout functionality
 
 ### Data Download Module
 - [ ] Pre-exam setup screen with dropdowns
