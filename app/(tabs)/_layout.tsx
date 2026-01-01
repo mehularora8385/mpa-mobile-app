@@ -9,19 +9,25 @@ import { Stack } from "expo-router";
 export default function TabLayout() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
+    console.log('TabLayout mounted - checking session');
     checkSession();
-    // Refresh session every 300ms to detect login changes quickly
-    const interval = setInterval(checkSession, 300);
+    
+    // Refresh session every 200ms to detect login changes quickly
+    const interval = setInterval(checkSession, 200);
     return () => clearInterval(interval);
-  }, [refreshTrigger]);
+  }, []);
 
   const checkSession = async () => {
     try {
       const currentSession = await mockAuthService.getSession();
-      console.log('Session check result:', currentSession);
+      console.log('SESSION CHECK:', {
+        hasSession: !!currentSession,
+        sessionData: currentSession,
+        isNull: currentSession === null,
+        isUndefined: currentSession === undefined,
+      });
       setSession(currentSession);
       setLoading(false);
     } catch (err) {
@@ -34,7 +40,7 @@ export default function TabLayout() {
   // Listen for storage changes (for web)
   useEffect(() => {
     const handleStorageChange = () => {
-      console.log('Storage changed, rechecking session...');
+      console.log('Storage event detected - rechecking session');
       checkSession();
     };
 
@@ -44,12 +50,15 @@ export default function TabLayout() {
     }
   }, []);
 
-  // Show login form if no session - NO SIDEBAR, NO TABS
+  // CRITICAL: Show login form if no session
+  // This should completely hide the sidebar
   if (!session) {
+    console.log('RENDERING: LOGIN FORM ONLY (NO SIDEBAR)');
     return <LoginForm />;
   }
 
   // Show authenticated app with sidebar
+  console.log('RENDERING: AUTHENTICATED APP WITH SIDEBAR');
   return (
     <View className="flex-1 flex-row bg-background">
       {/* Sidebar Navigation - ONLY shown when logged in */}

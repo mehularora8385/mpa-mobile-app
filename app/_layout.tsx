@@ -40,6 +40,20 @@ export default function RootLayout() {
     initManusRuntime();
   }, []);
 
+  // CRITICAL: Clear any stale session on app start to ensure clean state
+  useEffect(() => {
+    console.log('RootLayout mounted - clearing stale session for fresh start');
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const sessionKey = 'operator_session_mock';
+      const existingSession = window.localStorage.getItem(sessionKey);
+      if (existingSession) {
+        console.log('Found stale session in localStorage, clearing it');
+        window.localStorage.removeItem(sessionKey);
+        console.log('Stale session cleared');
+      }
+    }
+  }, []);
+
   // Check app lock status on mount
   useEffect(() => {
     const checkLockStatus = async () => {
