@@ -1,22 +1,19 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useCameraPermissions } from 'expo-camera';
 import { ScreenContainer } from '@/components/screen-container';
 import { mockAuthService } from '@/lib/auth-mock';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [permission, requestPermission] = useCameraPermissions();
   
   const [operatorName, setOperatorName] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [aadhaarNumber, setAadhaarNumber] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [selfieUri, setSelfieUri] = useState('');
   const [reviewMode, setReviewMode] = useState(false);
+  const [selfieUri, setSelfieUri] = useState('');
 
   const validateForm = () => {
     setError('');
@@ -35,18 +32,9 @@ export default function LoginScreen() {
     return true;
   };
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     if (!validateForm()) return;
-    if (!permission?.granted) {
-      requestPermission();
-      return;
-    }
-    setCameraActive(true);
-  };
-
-  const handleCaptureSelfie = () => {
     setSelfieUri('https://via.placeholder.com/200');
-    setCameraActive(false);
     setReviewMode(true);
   };
 
@@ -75,41 +63,6 @@ export default function LoginScreen() {
       setLoading(false);
     }
   };
-
-  // Camera Screen
-  if (cameraActive && !reviewMode) {
-    return (
-      <ScreenContainer className="bg-black flex-1">
-        <View className="flex-1 gap-4 justify-center items-center px-6">
-          <Text className="text-white text-xl font-bold">📷 Capture Selfie</Text>
-          <Text className="text-white/70 text-center text-sm">Point camera at your face</Text>
-          
-          <View className="w-56 h-64 bg-gray-700 rounded-2xl border-4 border-white items-center justify-center my-8">
-            <Text className="text-white text-center">Camera Preview Area</Text>
-          </View>
-
-          <TouchableOpacity 
-            onPress={handleCaptureSelfie}
-            className="w-full bg-primary py-4 rounded-lg items-center mb-3"
-            activeOpacity={0.8}
-          >
-            <Text className="text-white font-bold text-base">✓ Capture Selfie</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            onPress={() => {
-              setCameraActive(false);
-              setReviewMode(false);
-            }}
-            className="w-full bg-error py-4 rounded-lg items-center"
-            activeOpacity={0.8}
-          >
-            <Text className="text-white font-bold text-base">✕ Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </ScreenContainer>
-    );
-  }
 
   // Review Screen
   if (reviewMode && selfieUri) {
@@ -170,7 +123,6 @@ export default function LoginScreen() {
               onPress={() => { 
                 setSelfieUri(''); 
                 setReviewMode(false); 
-                setCameraActive(true); 
               }} 
               className="bg-surface border border-border px-6 py-3 rounded-lg items-center"
               activeOpacity={0.8}
