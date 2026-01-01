@@ -44,7 +44,7 @@ export default function LoginScreen() {
     setCameraActive(true);
   };
 
-  const handleCaptureSelfie = async () => {
+  const handleCaptureSelfie = () => {
     setSelfieUri('https://via.placeholder.com/200');
     setCameraActive(false);
     setReviewMode(true);
@@ -76,25 +76,42 @@ export default function LoginScreen() {
     }
   };
 
+  // Camera Screen
   if (cameraActive && !reviewMode) {
     return (
-      <ScreenContainer className="bg-black">
-        <View className="flex-1 gap-4 justify-center items-center">
-          <Text className="text-white text-lg font-semibold">📷 Capture Selfie</Text>
-          <View className="w-48 h-48 bg-gray-700 rounded-lg border-2 border-white items-center justify-center">
-            <Text className="text-white">Camera Preview</Text>
+      <ScreenContainer className="bg-black flex-1">
+        <View className="flex-1 gap-4 justify-center items-center px-6">
+          <Text className="text-white text-xl font-bold">📷 Capture Selfie</Text>
+          <Text className="text-white/70 text-center text-sm">Point camera at your face</Text>
+          
+          <View className="w-56 h-64 bg-gray-700 rounded-2xl border-4 border-white items-center justify-center my-8">
+            <Text className="text-white text-center">Camera Preview Area</Text>
           </View>
-          <TouchableOpacity onPress={handleCaptureSelfie} className="bg-primary px-8 py-3 rounded-lg">
-            <Text className="text-white font-bold">Capture Selfie</Text>
+
+          <TouchableOpacity 
+            onPress={handleCaptureSelfie}
+            className="w-full bg-primary py-4 rounded-lg items-center mb-3"
+            activeOpacity={0.8}
+          >
+            <Text className="text-white font-bold text-base">✓ Capture Selfie</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setCameraActive(false)} className="bg-error px-8 py-3 rounded-lg">
-            <Text className="text-white font-bold">Cancel</Text>
+
+          <TouchableOpacity 
+            onPress={() => {
+              setCameraActive(false);
+              setReviewMode(false);
+            }}
+            className="w-full bg-error py-4 rounded-lg items-center"
+            activeOpacity={0.8}
+          >
+            <Text className="text-white font-bold text-base">✕ Cancel</Text>
           </TouchableOpacity>
         </View>
       </ScreenContainer>
     );
   }
 
+  // Review Screen
   if (reviewMode && selfieUri) {
     return (
       <ScreenContainer className="bg-background">
@@ -105,13 +122,16 @@ export default function LoginScreen() {
               <Text className="text-lg font-semibold text-foreground">Biometric Verification</Text>
               <Text className="text-sm text-muted">Review Details</Text>
             </View>
+
             <Text className="text-center text-foreground font-semibold">Verify your information</Text>
+
             <View className="gap-2">
               <Text className="text-sm font-semibold text-foreground">Your Selfie</Text>
               <View className="w-full h-48 bg-surface border border-border rounded-lg overflow-hidden items-center justify-center">
                 <Text className="text-muted">📷 Selfie Preview</Text>
               </View>
             </View>
+
             <View className="gap-3 bg-surface border border-border rounded-lg p-4">
               <View>
                 <Text className="text-xs text-muted font-semibold mb-1">Operator Name</Text>
@@ -126,18 +146,43 @@ export default function LoginScreen() {
                 <Text className="text-foreground font-medium">{aadhaarNumber.slice(0, 2)}****{aadhaarNumber.slice(-2)}</Text>
               </View>
             </View>
+
             {error && (
               <View className="bg-error/10 border border-error rounded-lg p-3">
                 <Text className="text-error text-sm">{error}</Text>
               </View>
             )}
-            <TouchableOpacity onPress={handleConfirmLogin} disabled={loading} className="bg-primary px-6 py-4 rounded-lg items-center">
-              {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Confirm & Login</Text>}
+
+            <TouchableOpacity 
+              onPress={handleConfirmLogin} 
+              disabled={loading} 
+              className="bg-primary px-6 py-4 rounded-lg items-center"
+              activeOpacity={0.8}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-white font-bold text-lg">Confirm & Login</Text>
+              )}
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setSelfieUri(''); setReviewMode(false); setCameraActive(true); }} className="bg-surface border border-border px-6 py-3 rounded-lg items-center">
+
+            <TouchableOpacity 
+              onPress={() => { 
+                setSelfieUri(''); 
+                setReviewMode(false); 
+                setCameraActive(true); 
+              }} 
+              className="bg-surface border border-border px-6 py-3 rounded-lg items-center"
+              activeOpacity={0.8}
+            >
               <Text className="text-foreground font-semibold">Retake Selfie</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setReviewMode(false)} className="bg-surface border border-border px-6 py-3 rounded-lg items-center">
+
+            <TouchableOpacity 
+              onPress={() => setReviewMode(false)} 
+              className="bg-surface border border-border px-6 py-3 rounded-lg items-center"
+              activeOpacity={0.8}
+            >
               <Text className="text-foreground font-semibold">Edit Details</Text>
             </TouchableOpacity>
           </View>
@@ -146,6 +191,7 @@ export default function LoginScreen() {
     );
   }
 
+  // Login Form Screen
   return (
     <ScreenContainer className="bg-background">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-6">
@@ -155,26 +201,62 @@ export default function LoginScreen() {
             <Text className="text-lg font-semibold text-foreground">Biometric Verification</Text>
             <Text className="text-sm text-muted">Operator Login</Text>
           </View>
+
           {error && (
             <View className="bg-error/10 border border-error rounded-lg p-3">
               <Text className="text-error text-sm">{error}</Text>
             </View>
           )}
+
           <View className="gap-2">
             <Text className="text-sm font-semibold text-foreground">Operator Name</Text>
-            <TextInput placeholder="Enter your full name" value={operatorName} onChangeText={setOperatorName} className="border border-border rounded-lg p-3 text-foreground bg-surface" placeholderTextColor="#999" editable={!loading} />
+            <TextInput 
+              placeholder="Enter your full name" 
+              value={operatorName} 
+              onChangeText={setOperatorName} 
+              className="border border-border rounded-lg p-3 text-foreground bg-surface" 
+              placeholderTextColor="#999" 
+              editable={!loading} 
+            />
           </View>
+
           <View className="gap-2">
             <Text className="text-sm font-semibold text-foreground">Mobile Number</Text>
-            <TextInput placeholder="10-digit mobile number" value={mobileNumber} onChangeText={(text) => setMobileNumber(text.replace(/\D/g, '').slice(0, 10))} keyboardType="numeric" maxLength={10} className="border border-border rounded-lg p-3 text-foreground bg-surface" placeholderTextColor="#999" editable={!loading} />
+            <TextInput 
+              placeholder="10-digit mobile number" 
+              value={mobileNumber} 
+              onChangeText={(text) => setMobileNumber(text.replace(/\D/g, '').slice(0, 10))} 
+              keyboardType="numeric" 
+              maxLength={10} 
+              className="border border-border rounded-lg p-3 text-foreground bg-surface" 
+              placeholderTextColor="#999" 
+              editable={!loading} 
+            />
           </View>
+
           <View className="gap-2">
             <Text className="text-sm font-semibold text-foreground">Aadhaar Number</Text>
-            <TextInput placeholder="12-digit Aadhaar number" value={aadhaarNumber} onChangeText={(text) => setAadhaarNumber(text.replace(/\D/g, '').slice(0, 12))} keyboardType="numeric" maxLength={12} className="border border-border rounded-lg p-3 text-foreground bg-surface" placeholderTextColor="#999" editable={!loading} />
+            <TextInput 
+              placeholder="12-digit Aadhaar number" 
+              value={aadhaarNumber} 
+              onChangeText={(text) => setAadhaarNumber(text.replace(/\D/g, '').slice(0, 12))} 
+              keyboardType="numeric" 
+              maxLength={12} 
+              className="border border-border rounded-lg p-3 text-foreground bg-surface" 
+              placeholderTextColor="#999" 
+              editable={!loading} 
+            />
           </View>
-          <TouchableOpacity onPress={handleContinue} disabled={loading} className="bg-primary px-6 py-4 rounded-lg items-center mt-4">
+
+          <TouchableOpacity 
+            onPress={handleContinue} 
+            disabled={loading} 
+            className="bg-primary px-6 py-4 rounded-lg items-center mt-4"
+            activeOpacity={0.8}
+          >
             <Text className="text-white font-bold text-lg">Continue</Text>
           </TouchableOpacity>
+
           <View className="border border-border rounded-lg p-4 bg-surface mt-4">
             <Text className="text-xs font-bold text-foreground mb-2">📋 TEST CREDENTIALS:</Text>
             <Text className="text-xs text-muted">Mobile: 9730018733</Text>
