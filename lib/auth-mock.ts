@@ -67,8 +67,8 @@ class MockAuthService {
   }
 
   async register(data: OperatorRegistration): Promise<void> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
+    return new Promise(async (resolve, reject) => {
+      setTimeout(async () => {
         try {
           if (this.mockOperators.has(data.mobileNumber)) {
             reject(new Error('Operator with this mobile number already exists'));
@@ -95,8 +95,8 @@ class MockAuthService {
   }
 
   async login(credentials: any): Promise<any> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
+    return new Promise(async (resolve, reject) => {
+      setTimeout(async () => {
         try {
           if (credentials.operatorName && credentials.mobileNumber && credentials.aadhaarNumber) {
             const operatorId = this.mockOperators.has(credentials.mobileNumber) 
@@ -124,7 +124,7 @@ class MockAuthService {
 
             // Save session to secure store
             try {
-              SecureStore.setItem(this.sessionKey, JSON.stringify(session));
+              await SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session));
             } catch (e) {
               console.log('SecureStore not available in web, skipping save');
             }
@@ -156,7 +156,7 @@ class MockAuthService {
 
           // Save session to secure store
           try {
-            SecureStore.setItem(this.sessionKey, JSON.stringify(session));
+            await SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session));
           } catch (e) {
             console.log('SecureStore not available in web, skipping save');
           }
@@ -171,7 +171,7 @@ class MockAuthService {
 
   async getSession(): Promise<OperatorSession | null> {
     try {
-      const sessionStr = SecureStore.getItem(this.sessionKey);
+      const sessionStr = await SecureStore.getItemAsync(this.sessionKey);
       if (!sessionStr) return null;
       return JSON.parse(sessionStr);
     } catch (error) {
@@ -182,15 +182,15 @@ class MockAuthService {
 
   async logout(): Promise<void> {
     try {
-      SecureStore.setItem(this.sessionKey, '');
+      await SecureStore.setItemAsync(this.sessionKey, '');
     } catch (error) {
       console.error('Error logging out:', error);
     }
   }
 
   async refreshToken(): Promise<OperatorSession> {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
+    return new Promise(async (resolve, reject) => {
+      setTimeout(async () => {
         try {
           const session: OperatorSession = {
             operatorId: 'OP001',
@@ -202,7 +202,7 @@ class MockAuthService {
           };
 
           try {
-            SecureStore.setItem(this.sessionKey, JSON.stringify(session));
+            await SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session));
           } catch (e) {
             console.log('SecureStore not available in web, skipping save');
           }
