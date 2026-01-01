@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from './screen-container';
 import { useColors } from '@/hooks/use-colors';
@@ -348,16 +348,27 @@ export function LoginForm() {
               <View style={{
                 backgroundColor: '#f5f5f5',
                 borderRadius: 8,
-                height: 192,
+                height: 240,
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderWidth: 1,
                 borderColor: '#E5E7EB',
+                overflow: 'hidden',
               }}>
                 {selfieUri && selfieUri !== 'mock-selfie-uri' ? (
-                  <Text style={{ color: '#687076' }}>Selfie captured</Text>
+                  <Image
+                    source={{ uri: selfieUri }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      resizeMode: 'cover',
+                    }}
+                  />
                 ) : (
-                  <Text style={{ color: '#687076' }}>Mock selfie</Text>
+                  <View style={{ alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 48 }}>📸</Text>
+                    <Text style={{ color: '#687076', fontSize: 14 }}>Mock selfie</Text>
+                  </View>
                 )}
               </View>
             </View>
