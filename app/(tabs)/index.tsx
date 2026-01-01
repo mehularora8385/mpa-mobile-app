@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useCameraPermissions } from 'expo-camera';
 import { ScreenContainer } from '@/components/screen-container';
 import { mockAuthService } from '@/lib/auth-mock';
 
@@ -52,6 +52,7 @@ export default function LoginScreen() {
 
   const handleConfirmLogin = async () => {
     setLoading(true);
+    setError('');
     try {
       const result = await mockAuthService.login({
         operatorName,
@@ -59,14 +60,17 @@ export default function LoginScreen() {
         aadhaarNumber,
         selfieUri,
       });
-      if (result.success) {
-        router.replace('/(tabs)/home');
+      
+      if (result && (result.success || result.operatorId)) {
+        setTimeout(() => {
+          router.replace('/(tabs)/home');
+        }, 500);
       } else {
-        setError(result.error || 'Login failed');
+        setError('Login failed. Please try again.');
       }
-    } catch (err) {
-      setError('An error occurred during login');
-      console.error(err);
+    } catch (err: any) {
+      setError(err?.message || 'An error occurred during login');
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
