@@ -122,9 +122,14 @@ class MockAuthService {
               expiresAt: Date.now() + 24 * 60 * 60 * 1000,
             };
 
-            SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session)).then(() => {
-              resolve({ success: true, data: session });
-            }).catch(reject);
+            // Save session to secure store
+            try {
+              SecureStore.setItem(this.sessionKey, JSON.stringify(session));
+            } catch (e) {
+              console.log('SecureStore not available in web, skipping save');
+            }
+
+            resolve({ success: true, data: session });
             return;
           }
 
@@ -149,9 +154,14 @@ class MockAuthService {
             expiresAt: Date.now() + 24 * 60 * 60 * 1000,
           };
 
-          SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session)).then(() => {
-            resolve(session);
-          }).catch(reject);
+          // Save session to secure store
+          try {
+            SecureStore.setItem(this.sessionKey, JSON.stringify(session));
+          } catch (e) {
+            console.log('SecureStore not available in web, skipping save');
+          }
+
+          resolve(session);
         } catch (error) {
           reject(error);
         }
@@ -161,7 +171,7 @@ class MockAuthService {
 
   async getSession(): Promise<OperatorSession | null> {
     try {
-      const sessionStr = await SecureStore.getItemAsync(this.sessionKey);
+      const sessionStr = SecureStore.getItem(this.sessionKey);
       if (!sessionStr) return null;
       return JSON.parse(sessionStr);
     } catch (error) {
@@ -172,7 +182,7 @@ class MockAuthService {
 
   async logout(): Promise<void> {
     try {
-      await SecureStore.deleteItemAsync(this.sessionKey);
+      SecureStore.setItem(this.sessionKey, '');
     } catch (error) {
       console.error('Error logging out:', error);
     }
@@ -191,9 +201,13 @@ class MockAuthService {
             expiresAt: Date.now() + 24 * 60 * 60 * 1000,
           };
 
-          SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session)).then(() => {
-            resolve(session);
-          }).catch(reject);
+          try {
+            SecureStore.setItem(this.sessionKey, JSON.stringify(session));
+          } catch (e) {
+            console.log('SecureStore not available in web, skipping save');
+          }
+
+          resolve(session);
         } catch (error) {
           reject(error);
         }
