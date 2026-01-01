@@ -1,13 +1,16 @@
-import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { ScreenContainer } from '@/components/screen-container';
 import { mockAuthService } from '@/lib/auth-mock';
+import { cameraService } from '@/services/camera-service';
 
 type LoginStep = 'form' | 'camera' | 'review';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const cameraRef = useRef<CameraView>(null);
   
   // Form state
   const [operatorName, setOperatorName] = useState('');
@@ -19,6 +22,25 @@ export default function LoginScreen() {
   // Navigation state
   const [currentStep, setCurrentStep] = useState<LoginStep>('form');
   const [selfieUri, setSelfieUri] = useState('');
+  const [permission, requestPermission] = useCameraPermissions();
+  const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
+
+  // Check camera permission on mount
+  useEffect(() => {
+    checkCameraPermission();
+  }, []);
+
+  const checkCameraPermission = async () => {
+    if (permission?.granted) {
+      setCameraPermission(true);
+    } else if (permission?.canAskAgain) {
+      const result = await requestPermission();
+      setCameraPermission(result?.granted || false);
+    } else {
+      setCameraPermission(false);
+    }
+  };
 
   const validateForm = () => {
     setError('');
@@ -37,16 +59,48 @@ export default function LoginScreen() {
     return true;
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!validateForm()) return;
+    
+    // Request camera permission if needed
+    if (!cameraPermission && permission?.canAskAgain) {
+      const result = await requestPermission();
+      if (!result?.granted) {
+        setError('Camera permission is required to capture selfie');
+        return;
+      }
+      setCameraPermission(true);
+    }
+    
     setCurrentStep('camera');
     setError('');
   };
 
-  const handleCaptureSelfie = () => {
-    setSelfieUri('https://via.placeholder.com/200');
-    setCurrentStep('review');
-    setError('');
+  const handleCaptureSelfie = async () => {
+    if (!cameraRef.current || !cameraReady) {
+      setError('Camera is not ready. Please try again.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8,
+        skipProcessing: false,
+      });
+      if (photo?.uri) {
+        setSelfieUri(photo.uri);
+        setCurrentStep('review');
+        setError('');
+      } else {
+        setError('Failed to capture selfie. Please try again.');
+      }
+    } catch (err: any) {
+      setError('Failed to capture selfie. Please try again.');
+      console.error('Capture error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRetakeSelfie = () => {
@@ -165,36 +219,59 @@ export default function LoginScreen() {
     );
   }
 
-  // STEP 2: Camera Screen
+  // STEP 2: Camera Screen with Real Camera
   if (currentStep === 'camera') {
-    return (
-      <ScreenContainer className="bg-black flex-1">
-        <View className="flex-1 gap-4 justify-center items-center px-6">
-          <Text className="text-white text-2xl font-bold">📷 Capture Selfie</Text>
-          <Text className="text-white/70 text-center text-sm mb-4">Point camera at your face and take a selfie</Text>
-          
-          <View className="w-64 h-72 bg-gray-800 rounded-2xl border-4 border-white items-center justify-center my-8 shadow-lg">
-            <Text className="text-white text-center text-lg font-semibold">Camera Preview</Text>
-            <Text className="text-white/50 text-xs mt-2">Position your face in frame</Text>
+    if (cameraPermission === false) {
+      return (
+        <ScreenContainer className="bg-background flex-1 justify-center items-center px-6">
+          <View className="gap-4 items-center">
+            <Text className="text-2xl font-bold text-foreground">Camera Permission Required</Text>
+            <Text className="text-center text-muted">Please enable camera access in your device settings to capture selfie</Text>
+            <TouchableOpacity 
+              onPress={() => setCurrentStep('form')}
+              className="w-full bg-primary py-4 rounded-lg items-center mt-4"
+              activeOpacity={0.7}
+            >
+              <Text className="text-white font-bold">Go Back</Text>
+            </TouchableOpacity>
           </View>
+        </ScreenContainer>
+      );
+    }
 
+    return (
+      <View className="flex-1 bg-black">
+      <CameraView
+        ref={cameraRef}
+        style={{ flex: 1 }}
+        facing="front"
+        onCameraReady={() => setCameraReady(true)}
+      />
+        
+        <View className="absolute bottom-0 left-0 right-0 bg-black/80 px-6 py-6 gap-3">
           <TouchableOpacity 
             onPress={handleCaptureSelfie}
-            className="w-full bg-primary py-4 rounded-lg items-center mb-3 shadow-md"
+            disabled={loading || !cameraReady}
+            className="w-full bg-primary py-4 rounded-lg items-center shadow-md"
             activeOpacity={0.7}
           >
-            <Text className="text-white font-bold text-base">✓ Capture Selfie</Text>
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white font-bold text-base">✓ Capture Selfie</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity 
             onPress={() => setCurrentStep('form')}
+            disabled={loading}
             className="w-full bg-error py-4 rounded-lg items-center shadow-md"
             activeOpacity={0.7}
           >
             <Text className="text-white font-bold text-base">✕ Cancel</Text>
           </TouchableOpacity>
         </View>
-      </ScreenContainer>
+      </View>
     );
   }
 
@@ -214,9 +291,11 @@ export default function LoginScreen() {
 
             <View className="gap-2">
               <Text className="text-sm font-semibold text-foreground">Your Selfie</Text>
-              <View className="w-full h-48 bg-surface border-2 border-primary rounded-lg overflow-hidden items-center justify-center shadow-md">
-                <Text className="text-muted text-lg">📷 Selfie Preview</Text>
-              </View>
+              <Image
+                source={{ uri: selfieUri }}
+                style={{ width: '100%', height: 200, borderRadius: 12, borderWidth: 2 }}
+                className="border-primary"
+              />
             </View>
 
             <View className="gap-3 bg-surface border border-border rounded-lg p-4 shadow-sm">
