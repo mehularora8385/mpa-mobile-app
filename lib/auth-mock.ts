@@ -31,8 +31,6 @@ class MockAuthService {
   private static instance: MockAuthService;
   private sessionKey = 'operator_session_mock';
   private operatorsKey = 'operators_mock';
-
-  // Mock data storage
   private mockOperators: Map<string, any> = new Map();
 
   private constructor() {
@@ -47,13 +45,12 @@ class MockAuthService {
   }
 
   private initializeMockData() {
-    // Add some test operators
     this.mockOperators.set('9730018733', {
       operatorId: 'OP001',
       operatorName: 'Mehul Arora',
       mobileNumber: '9730018733',
       aadhaarNumber: '659999999978',
-      password: '659999999978', // Using aadhaar as password
+      password: '659999999978',
       selfieUri: 'mock-selfie-uri',
       createdAt: new Date().toISOString(),
     });
@@ -69,25 +66,22 @@ class MockAuthService {
     });
   }
 
-  // Register a new operator
   async register(data: OperatorRegistration): Promise<void> {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         try {
-          // Check if operator already exists
           if (this.mockOperators.has(data.mobileNumber)) {
             reject(new Error('Operator with this mobile number already exists'));
             return;
           }
 
-          // Create new operator
           const operatorId = `OP${String(this.mockOperators.size + 1).padStart(3, '0')}`;
           this.mockOperators.set(data.mobileNumber, {
             operatorId,
             operatorName: data.operatorName,
             mobileNumber: data.mobileNumber,
             aadhaarNumber: data.aadhaarNumber,
-            password: data.aadhaarNumber, // Using aadhaar as password
+            password: data.aadhaarNumber,
             selfieUri: data.selfieUri,
             createdAt: new Date().toISOString(),
           });
@@ -96,15 +90,44 @@ class MockAuthService {
         } catch (error) {
           reject(error);
         }
-      }, 1000); // Simulate network delay
+      }, 1000);
     });
   }
 
-  // Login with credentials
-  async login(credentials: OperatorCredentials): Promise<OperatorSession> {
+  async login(credentials: any): Promise<any> {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         try {
+          if (credentials.operatorName && credentials.mobileNumber && credentials.aadhaarNumber) {
+            const operatorId = this.mockOperators.has(credentials.mobileNumber) 
+              ? this.mockOperators.get(credentials.mobileNumber).operatorId
+              : `OP${String(this.mockOperators.size + 1).padStart(3, '0')}`;
+
+            this.mockOperators.set(credentials.mobileNumber, {
+              operatorId,
+              operatorName: credentials.operatorName,
+              mobileNumber: credentials.mobileNumber,
+              aadhaarNumber: credentials.aadhaarNumber,
+              password: credentials.aadhaarNumber,
+              selfieUri: credentials.selfieUri,
+              createdAt: new Date().toISOString(),
+            });
+
+            const session: OperatorSession = {
+              operatorId,
+              operatorName: credentials.operatorName,
+              mobileNumber: credentials.mobileNumber,
+              token: `mock-token-${Date.now()}`,
+              refreshToken: `mock-refresh-${Date.now()}`,
+              expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+            };
+
+            SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session)).then(() => {
+              resolve({ success: true, data: session });
+            }).catch(reject);
+            return;
+          }
+
           const operator = this.mockOperators.get(credentials.operatorIdOrMobile);
 
           if (!operator) {
@@ -117,40 +140,36 @@ class MockAuthService {
             return;
           }
 
-          // Create session
           const session: OperatorSession = {
             operatorId: operator.operatorId,
             operatorName: operator.operatorName,
             mobileNumber: operator.mobileNumber,
             token: `mock-token-${Date.now()}`,
-            refreshToken: `mock-refresh-token-${Date.now()}`,
-            expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+            refreshToken: `mock-refresh-${Date.now()}`,
+            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
           };
 
-          // Store session
-          SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session)).catch(console.error);
-
-          resolve(session);
+          SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session)).then(() => {
+            resolve(session);
+          }).catch(reject);
         } catch (error) {
           reject(error);
         }
-      }, 1500); // Simulate network delay
+      }, 1000);
     });
   }
 
-  // Get current session
   async getSession(): Promise<OperatorSession | null> {
     try {
-      const sessionData = await SecureStore.getItemAsync(this.sessionKey);
-      if (!sessionData) return null;
-      return JSON.parse(sessionData);
+      const sessionStr = await SecureStore.getItemAsync(this.sessionKey);
+      if (!sessionStr) return null;
+      return JSON.parse(sessionStr);
     } catch (error) {
       console.error('Error getting session:', error);
       return null;
     }
   }
 
-  // Logout
   async logout(): Promise<void> {
     try {
       await SecureStore.deleteItemAsync(this.sessionKey);
@@ -159,23 +178,27 @@ class MockAuthService {
     }
   }
 
-  // Check if operator is logged in
-  async isLoggedIn(): Promise<boolean> {
-    const session = await this.getSession();
-    if (!session) return false;
+  async refreshToken(): Promise<OperatorSession> {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        try {
+          const session: OperatorSession = {
+            operatorId: 'OP001',
+            operatorName: 'Test Operator',
+            mobileNumber: '9730018733',
+            token: `mock-token-${Date.now()}`,
+            refreshToken: `mock-refresh-${Date.now()}`,
+            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+          };
 
-    // Check if token is expired
-    if (session.expiresAt < Date.now()) {
-      await this.logout();
-      return false;
-    }
-
-    return true;
-  }
-
-  // Get all mock operators (for debugging)
-  getAllOperators() {
-    return Array.from(this.mockOperators.values());
+          SecureStore.setItemAsync(this.sessionKey, JSON.stringify(session)).then(() => {
+            resolve(session);
+          }).catch(reject);
+        } catch (error) {
+          reject(error);
+        }
+      }, 500);
+    });
   }
 }
 
