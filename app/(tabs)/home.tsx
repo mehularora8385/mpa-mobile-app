@@ -1,264 +1,157 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ScreenContainer } from '@/components/screen-container';
-import { offlineStorage, ExamData } from '@/lib/offline-storage';
-import { authService, OperatorSession } from '@/lib/auth-service';
-import * as Haptics from 'expo-haptics';
-
-interface DashboardStats {
-  totalCandidates: number;
-  presentCount: number;
-  absentCount: number;
-  registeredCount: number;
-  pendingCount: number;
-  averageFaceMatch: number;
-  omrMappedCount: number;
-}
+import { mockAuthService } from '@/lib/auth-mock';
+import type { OperatorSession } from '@/lib/auth-mock';
 
 export default function HomeScreen() {
   const router = useRouter();
   const [session, setSession] = useState<OperatorSession | null>(null);
-  const [exams, setExams] = useState<ExamData[]>([]);
-  const [selectedExamStats, setSelectedExamStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    loadData();
+    loadSession();
   }, []);
 
-  const loadData = async () => {
+  const loadSession = async () => {
     try {
-      setLoading(true);
-      
-      // Get session
-      const currentSession = await authService.getSession();
-      setSession(currentSession);
-
-      // Get all exam data
-      const examsData = await offlineStorage.getAllExamData();
-      setExams(examsData);
-
-      // Get stats for first exam
-      if (examsData.length > 0) {
-        const stats = await offlineStorage.getDashboardStats(examsData[0].examId);
-        setSelectedExamStats(stats);
+      const currentSession = await mockAuthService.getSession();
+      if (!currentSession) {
+        router.replace('/');
+        return;
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
+      setSession(currentSession);
+    } catch (err) {
+      console.error('Error loading session:', err);
+      router.replace('/');
     } finally {
       setLoading(false);
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
-
-  const handleExamSelect = async (examId: string) => {
-    const stats = await offlineStorage.getDashboardStats(examId);
-    setSelectedExamStats(stats);
+  const handleLogout = async () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await mockAuthService.logout();
+            router.replace('/');
+          } catch (err) {
+            Alert.alert('Error', 'Failed to logout');
+          }
+        },
+      },
+    ]);
   };
 
   if (loading) {
     return (
-      <ScreenContainer className="bg-background items-center justify-center">
+      <ScreenContainer className="justify-center items-center">
         <ActivityIndicator size="large" color="#0066CC" />
+      </ScreenContainer>
+    );
+  }
+
+  if (!session) {
+    return (
+      <ScreenContainer className="justify-center items-center">
+        <Text className="text-foreground">No session found</Text>
       </ScreenContainer>
     );
   }
 
   return (
     <ScreenContainer className="bg-background">
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        className="p-6"
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        <View className="gap-6">
-          {/* Welcome Header */}
-          <View className="gap-2">
-            <Text className="text-3xl font-bold text-foreground">
-              Welcome, {session?.operatorName}
-            </Text>
-            <Text className="text-sm text-muted">
-              Operator ID: {session?.operatorId}
-            </Text>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-6">
+        <View className="flex-1 gap-8">
+          <View className="items-center gap-2">
+            <Text className="text-4xl font-bold text-primary">SEPL</Text>
+            <Text className="text-lg text-foreground font-semibold">Biometric Verification</Text>
+            <Text className="text-sm text-muted">Operator Dashboard</Text>
           </View>
 
-          {/* Quick Actions */}
-          <View className="gap-3">
-            <Pressable
-              onPress={() => null}
-              style={({ pressed }: any) => ([
-                { backgroundColor: '#0066CC', borderRadius: 8, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-                pressed && { opacity: 0.8 },
-              ])}
-            >
-              <View className="gap-1">
-                <Text className="text-white font-semibold">Download Exam Data</Text>
-                <Text className="text-white/80 text-xs">Get candidate list</Text>
-              </View>
-              <Text className="text-white text-xl">→</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => null}
-              style={({ pressed }: any) => ([
-                { backgroundColor: '#00D084', borderRadius: 8, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-                pressed && { opacity: 0.8 },
-              ])}
-            >
-              <View className="gap-1">
-                <Text className="text-white font-semibold">Verify OTP</Text>
-                <Text className="text-white/80 text-xs">On-site verification</Text>
-              </View>
-              <Text className="text-white text-xl">→</Text>
-            </Pressable>
+          <View className="bg-primary/10 border border-primary/20 rounded-2xl p-6">
+            <Text className="text-sm text-muted mb-1">Welcome back,</Text>
+            <Text className="text-2xl font-bold text-foreground">{session.operatorName}</Text>
+            <Text className="text-xs text-muted mt-2">Operator ID: {session.operatorId}</Text>
           </View>
 
-          {/* Exam Selection */}
-          {exams.length > 0 ? (
-            <View className="gap-3">
-              <Text className="text-lg font-bold text-foreground">Select Exam</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="gap-2">
-                {exams.map(exam => (
-                  <TouchableOpacity
-                    key={exam.examId}
-                    onPress={() => handleExamSelect(exam.examId)}
-                    className={`px-4 py-2 rounded-full border-2 ${
-                      selectedExamStats && exam.examId === exams[0].examId
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-surface'
-                    }`}
-                  >
-                    <Text className="font-semibold text-foreground text-sm">
-                      {exam.examName}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          ) : null}
-
-          {/* Dashboard Stats */}
-          {selectedExamStats ? (
-            <View className="gap-4">
-              <Text className="text-lg font-bold text-foreground">Today's Statistics</Text>
-
-              {/* Stats Grid */}
-              <View className="gap-3">
-                {/* Row 1 */}
-                <View className="flex-row gap-3">
-                  <View className="flex-1 bg-surface border border-border rounded-lg p-4">
-                    <Text className="text-xs text-muted font-semibold mb-1">Total Candidates</Text>
-                    <Text className="text-2xl font-bold text-foreground">
-                      {selectedExamStats.totalCandidates}
-                    </Text>
-                  </View>
-                  <View className="flex-1 bg-surface border border-border rounded-lg p-4">
-                    <Text className="text-xs text-muted font-semibold mb-1">Present</Text>
-                    <Text className="text-2xl font-bold text-success">
-                      {selectedExamStats.presentCount}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Row 2 */}
-                <View className="flex-row gap-3">
-                  <View className="flex-1 bg-surface border border-border rounded-lg p-4">
-                    <Text className="text-xs text-muted font-semibold mb-1">Absent</Text>
-                    <Text className="text-2xl font-bold text-error">
-                      {selectedExamStats.absentCount}
-                    </Text>
-                  </View>
-                  <View className="flex-1 bg-surface border border-border rounded-lg p-4">
-                    <Text className="text-xs text-muted font-semibold mb-1">Registered</Text>
-                    <Text className="text-2xl font-bold text-primary">
-                      {selectedExamStats.registeredCount}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Row 3 */}
-                <View className="flex-row gap-3">
-                  <View className="flex-1 bg-surface border border-border rounded-lg p-4">
-                    <Text className="text-xs text-muted font-semibold mb-1">Pending</Text>
-                    <Text className="text-2xl font-bold text-warning">
-                      {selectedExamStats.pendingCount}
-                    </Text>
-                  </View>
-                  <View className="flex-1 bg-surface border border-border rounded-lg p-4">
-                    <Text className="text-xs text-muted font-semibold mb-1">OMR Mapped</Text>
-                    <Text className="text-2xl font-bold text-primary">
-                      {selectedExamStats.omrMappedCount}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Face Match */}
-                <View className="bg-surface border border-border rounded-lg p-4">
-                  <Text className="text-xs text-muted font-semibold mb-1">Avg Face Match %</Text>
-                  <View className="flex-row items-center gap-2">
-                    <Text className="text-3xl font-bold text-primary">
-                      {selectedExamStats.averageFaceMatch}%
-                    </Text>
-                    <View className="flex-1 h-2 bg-border rounded-full overflow-hidden">
-                      <View
-                        className="h-full bg-primary"
-                        style={{ width: `${selectedExamStats.averageFaceMatch}%` }}
-                      />
-                    </View>
-                  </View>
-                </View>
-              </View>
-            </View>
-          ) : (
-            <View className="bg-surface border border-border rounded-lg p-6 items-center gap-3">
-              <Text className="text-foreground font-semibold">No exam data available</Text>
-              <Text className="text-sm text-muted text-center">
-                Download exam data to see statistics
-              </Text>
-            </View>
-          )}
-
-          {/* Navigation Cards */}
           <View className="gap-3">
-            <TouchableOpacity
-              onPress={() => null}
-              className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between"
-            >
-              <View className="gap-1">
-                <Text className="font-semibold text-foreground">View Candidates</Text>
-                <Text className="text-xs text-muted">Search and manage</Text>
+            <Text className="text-lg font-bold text-foreground">Quick Stats</Text>
+            <View className="flex-row gap-3">
+              <View className="flex-1 bg-surface rounded-lg p-4 border border-border">
+                <Text className="text-2xl font-bold text-primary">0</Text>
+                <Text className="text-xs text-muted mt-1">Exams Today</Text>
               </View>
-              <Text className="text-primary text-xl">→</Text>
+              <View className="flex-1 bg-surface rounded-lg p-4 border border-border">
+                <Text className="text-2xl font-bold text-success">0</Text>
+                <Text className="text-xs text-muted mt-1">Verified</Text>
+              </View>
+            </View>
+          </View>
+
+          <View className="gap-3">
+            <Text className="text-lg font-bold text-foreground">Menu</Text>
+
+            <TouchableOpacity className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
+              <View>
+                <Text className="text-foreground font-semibold">📥 Download Exam Data</Text>
+                <Text className="text-xs text-muted mt-1">Download mock or exam data</Text>
+              </View>
+              <Text className="text-xl">→</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => null}
-              className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between"
-            >
-              <View className="gap-1">
-                <Text className="font-semibold text-foreground">Sync Data</Text>
-                <Text className="text-xs text-muted">Upload changes</Text>
+            <TouchableOpacity className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
+              <View>
+                <Text className="text-foreground font-semibold">👤 Candidates</Text>
+                <Text className="text-xs text-muted mt-1">View candidate list</Text>
               </View>
-              <Text className="text-primary text-xl">→</Text>
+              <Text className="text-xl">→</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => null}
-              className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between"
-            >
-              <View className="gap-1">
-                <Text className="font-semibold text-foreground">Settings</Text>
-                <Text className="text-xs text-muted">Preferences & info</Text>
+            <TouchableOpacity className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
+              <View>
+                <Text className="text-foreground font-semibold">📊 Exam Day</Text>
+                <Text className="text-xs text-muted mt-1">Start exam workflow</Text>
               </View>
-              <Text className="text-primary text-xl">→</Text>
+              <Text className="text-xl">→</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
+              <View>
+                <Text className="text-foreground font-semibold">🔄 Sync Data</Text>
+                <Text className="text-xs text-muted mt-1">Sync with server</Text>
+              </View>
+              <Text className="text-xl">→</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity className="bg-surface border border-border rounded-lg p-4 flex-row items-center justify-between">
+              <View>
+                <Text className="text-foreground font-semibold">⚙️ Settings</Text>
+                <Text className="text-xs text-muted mt-1">App settings</Text>
+              </View>
+              <Text className="text-xl">→</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            onPress={handleLogout}
+            className="bg-error/10 border border-error rounded-lg p-4 items-center mt-auto"
+          >
+            <Text className="text-error font-bold">🚪 Logout</Text>
+          </TouchableOpacity>
+
+          <View className="bg-muted/10 rounded-lg p-3 mt-4">
+            <Text className="text-xs text-muted font-mono">
+              Token: {session.token.slice(0, 20)}...
+            </Text>
+            <Text className="text-xs text-muted font-mono mt-1">
+              Expires: {new Date(session.expiresAt).toLocaleDateString()}
+            </Text>
           </View>
         </View>
       </ScrollView>

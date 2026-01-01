@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Image, Pressable } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
-import { authService } from '@/lib/auth-service';
+import { mockAuthService } from '@/lib/auth-mock';
 import * as Haptics from 'expo-haptics';
 
 type LoginStep = 'form' | 'camera' | 'review';
@@ -24,6 +24,22 @@ export default function LoginScreen() {
   const [currentStep, setCurrentStep] = useState<LoginStep>('form');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Check if already logged in
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+
+  const checkLoginStatus = async () => {
+    try {
+      const isLoggedIn = await mockAuthService.isLoggedIn();
+      if (isLoggedIn) {
+        router.replace('/home');
+      }
+    } catch (err) {
+      console.error('Error checking login status:', err);
+    }
+  };
 
   const maskAadhaar = (value: string) => {
     const cleaned = value.replace(/\D/g, '');
@@ -62,6 +78,7 @@ export default function LoginScreen() {
 
     try {
       setLoading(true);
+      setError('');
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
         base64: true,
@@ -72,7 +89,9 @@ export default function LoginScreen() {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (err) {
       console.error('Camera error:', err);
-      Alert.alert('Error', 'Failed to capture selfie');
+      const errorMsg = err instanceof Error ? err.message : 'Failed to capture selfie';
+      setError(errorMsg);
+      Alert.alert('Camera Error', errorMsg);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setLoading(false);
@@ -82,6 +101,7 @@ export default function LoginScreen() {
   const handleRetakeSelfie = () => {
     setSelfieUri(null);
     setCurrentStep('camera');
+    setError('');
   };
 
   const handleLogin = async () => {
@@ -94,31 +114,55 @@ export default function LoginScreen() {
         return;
       }
 
-      // Call login API with all details
-      // First register the operator
-      await authService.register({
-        operatorName,
-        mobileNumber,
-        aadhaarNumber,
-        selfieUri: selfieUri!,
-      });
+      console.log('Starting login process...');
+
+      // First try to register the operator
+      try {
+        console.log('Registering operator...');
+        await mockAuthService.register({
+          operatorName,
+          mobileNumber,
+          aadhaarNumber,
+          selfieUri: selfieUri!,
+        });
+        console.log('Registration successful');
+      } catch (regErr) {
+        console.log('Registration error (may already exist):', regErr);
+        // Operator might already exist, continue to login
+      }
 
       // Then login
-      const session = await authService.login({
+      console.log('Attempting login...');
+      const session = await mockAuthService.login({
         operatorIdOrMobile: mobileNumber,
-        password: aadhaarNumber, // Using aadhaar as password for now
+        password: aadhaarNumber,
       });
 
+      console.log('Login successful:', session);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Success', `Welcome ${operatorName}!`);
-      router.replace('/');
+      
+      Alert.alert('Success', `Welcome ${operatorName}!`, [
+        {
+          text: 'OK',
+          onPress: () => {
+            router.replace('/home');
+          },
+        },
+      ]);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      console.error('Login error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
       setError(errorMessage);
+      Alert.alert('Login Failed', errorMessage);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditDetails = () => {
+    setCurrentStep('form');
+    setError('');
   };
 
   // Step 1: Form Input
@@ -147,122 +191,79 @@ export default function LoginScreen() {
             <View className="gap-4">
               {/* Operator Name */}
               <View className="gap-2">
-                <Text className="text-sm font-semibold text-foreground">
-                  Operator Name *
-                </Text>
+                <Text className="text-sm font-semibold text-foreground">Operator Name</Text>
                 <TextInput
-                  className="bg-surface border border-border rounded-lg p-4 text-foreground"
                   placeholder="Enter your full name"
-                  placeholderTextColor="#999"
                   value={operatorName}
                   onChangeText={setOperatorName}
+                  className="border border-border rounded-lg p-3 text-foreground bg-surface"
+                  placeholderTextColor="#999"
                   editable={!loading}
                 />
               </View>
 
               {/* Mobile Number */}
               <View className="gap-2">
-                <Text className="text-sm font-semibold text-foreground">
-                  Mobile Number *
-                </Text>
-                <View className="flex-row items-center bg-surface border border-border rounded-lg">
-                  <Text className="px-4 text-foreground font-semibold">+91</Text>
-                  <TextInput
-                    className="flex-1 p-4 text-foreground"
-                    placeholder="10-digit mobile number"
-                    placeholderTextColor="#999"
-                    value={mobileNumber}
-                    onChangeText={setMobileNumber}
-                    keyboardType="number-pad"
-                    maxLength={10}
-                    editable={!loading}
-                  />
-                </View>
+                <Text className="text-sm font-semibold text-foreground">Mobile Number</Text>
+                <TextInput
+                  placeholder="10-digit mobile number"
+                  value={mobileNumber}
+                  onChangeText={(text) => setMobileNumber(text.replace(/\D/g, '').slice(0, 10))}
+                  keyboardType="numeric"
+                  maxLength={10}
+                  className="border border-border rounded-lg p-3 text-foreground bg-surface"
+                  placeholderTextColor="#999"
+                  editable={!loading}
+                />
               </View>
 
               {/* Aadhaar Number */}
               <View className="gap-2">
-                <Text className="text-sm font-semibold text-foreground">
-                  Aadhaar Number *
-                </Text>
-                <View className="gap-1">
-                  <TextInput
-                    className="bg-surface border border-border rounded-lg p-4 text-foreground"
-                    placeholder="12-digit Aadhaar number"
-                    placeholderTextColor="#999"
-                    value={aadhaarNumber}
-                    onChangeText={handleAadhaarChange}
-                    keyboardType="number-pad"
-                    maxLength={12}
-                    editable={!loading}
-                  />
-                  <Text className="text-xs text-muted px-1">
-                    Masked: {maskedAadhaar || 'XXXX XXXX XXXX'}
-                  </Text>
-                </View>
+                <Text className="text-sm font-semibold text-foreground">Aadhaar Number</Text>
+                <TextInput
+                  placeholder="12-digit Aadhaar number"
+                  value={maskedAadhaar}
+                  onChangeText={handleAadhaarChange}
+                  keyboardType="numeric"
+                  maxLength={12}
+                  className="border border-border rounded-lg p-3 text-foreground bg-surface"
+                  placeholderTextColor="#999"
+                  editable={!loading}
+                />
               </View>
 
-              {/* Selfie Status */}
-              <View className="bg-primary/10 border border-primary rounded-lg p-4 gap-2">
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-lg">{selfieUri ? '✓' : '📷'}</Text>
-                  <View className="flex-1">
-                    <Text className="font-semibold text-foreground">
-                      {selfieUri ? 'Selfie Captured' : 'Selfie Required'}
-                    </Text>
-                    <Text className="text-xs text-muted">
-                      {selfieUri ? 'Ready for verification' : 'Tap below to capture'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            {/* Capture Selfie Button */}
-            <Pressable
-              onPress={async () => {
-                if (!permission?.granted) {
-                  await requestPermission();
-                } else {
+              {/* Continue Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  setError('');
+                  if (!operatorName.trim()) {
+                    setError('Please enter operator name');
+                    return;
+                  }
+                  if (!mobileNumber.trim() || mobileNumber.length !== 10) {
+                    setError('Please enter valid 10-digit mobile number');
+                    return;
+                  }
+                  if (!aadhaarNumber.trim() || aadhaarNumber.length !== 12) {
+                    setError('Please enter valid 12-digit Aadhaar number');
+                    return;
+                  }
                   setCurrentStep('camera');
-                }
-              }}
-              disabled={loading}
-              style={({ pressed }: any) => ([
-                { backgroundColor: '#00D084', borderRadius: 8, padding: 16, alignItems: 'center' },
-                pressed && !loading && { opacity: 0.8 },
-              ])}
-            >
-              <Text className="text-white font-semibold text-lg">
-                {selfieUri ? 'Retake Selfie' : 'Capture Selfie'}
-              </Text>
-            </Pressable>
+                }}
+                disabled={loading}
+                className="bg-primary rounded-lg p-4 items-center mt-4"
+              >
+                <Text className="text-background font-bold text-lg">
+                  {loading ? 'Loading...' : 'Continue'}
+                </Text>
+              </TouchableOpacity>
 
-            {/* Login Button */}
-            <Pressable
-              onPress={handleLogin}
-              disabled={loading || !selfieUri}
-              style={({ pressed }: any) => ([
-                { backgroundColor: !selfieUri ? '#999' : '#0066CC', borderRadius: 8, padding: 16, alignItems: 'center' },
-                pressed && !loading && { opacity: 0.8 },
-              ])}
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text className="text-white font-semibold text-lg">Login</Text>
-              )}
-            </Pressable>
-
-            {/* Info Box */}
-            <View className="bg-primary/10 border border-primary rounded-lg p-4 gap-2">
-              <Text className="font-semibold text-primary">Important</Text>
-              <Text className="text-sm text-foreground">
-                • One operator per mobile per exam{'\n'}
-                • Can login for both mock and exam{'\n'}
-                • Cannot login twice with same mobile{'\n'}
-                • Selfie is required for verification
-              </Text>
+              {/* Test Credentials */}
+              <View className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                <Text className="text-xs font-semibold text-blue-900 mb-2">📱 TEST CREDENTIALS:</Text>
+                <Text className="text-xs text-blue-800">Mobile: 9730018733</Text>
+                <Text className="text-xs text-blue-800">Aadhaar: 659999999978</Text>
+              </View>
             </View>
           </View>
         </ScrollView>
@@ -270,66 +271,54 @@ export default function LoginScreen() {
     );
   }
 
-  // Step 2: Camera
+  // Step 2: Camera - Capture Selfie
   if (currentStep === 'camera') {
-    if (!permission?.granted) {
-      return (
-        <ScreenContainer className="bg-background items-center justify-center gap-4">
-          <Text className="text-foreground font-semibold">Camera permission required</Text>
-          <TouchableOpacity
-            onPress={requestPermission}
-            className="bg-primary rounded-lg px-6 py-3"
-          >
-            <Text className="text-white font-semibold">Grant Permission</Text>
-          </TouchableOpacity>
-        </ScreenContainer>
-      );
-    }
-
     return (
-      <ScreenContainer className="bg-background" edges={['top', 'left', 'right', 'bottom']}>
-        <View className="flex-1">
-          {/* Camera */}
-          <CameraView ref={cameraRef} style={{ flex: 1 }} facing="front" />
-
-          {/* Overlay with Face Guide */}
-          <View className="absolute inset-0 bg-black/30 flex items-center justify-center">
-            <View className="w-48 h-64 border-4 border-primary rounded-3xl" />
-          </View>
-
-          {/* Instructions */}
-          <View className="absolute top-0 left-0 right-0 bg-black/50 p-4">
-            <Text className="text-white font-semibold text-lg">Capture Selfie</Text>
-            <Text className="text-white/80 text-sm">Position your face in the frame</Text>
-          </View>
-
-          {/* Buttons */}
-          <View className="absolute bottom-0 left-0 right-0 bg-black/50 p-4 gap-3 flex-row">
-            <TouchableOpacity
-              onPress={() => setCurrentStep('form')}
-              className="flex-1 bg-white/20 rounded-lg p-4 items-center"
-            >
-              <Text className="text-white font-semibold">Cancel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleCaptureSelfie}
-              disabled={loading}
-              className="flex-1 bg-primary rounded-lg p-4 items-center"
-            >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text className="text-white font-semibold">Capture</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+      <ScreenContainer className="bg-black">
+        <View className="flex-1 justify-center">
+          {permission?.granted ? (
+            <>
+              <CameraView ref={cameraRef} className="flex-1" facing="front" />
+              <View className="bg-black p-6 gap-4">
+                <TouchableOpacity
+                  onPress={handleCaptureSelfie}
+                  disabled={loading}
+                  className="bg-primary rounded-lg p-4 items-center"
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text className="text-background font-bold text-lg">📸 Capture Selfie</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setCurrentStep('form')}
+                  disabled={loading}
+                  className="bg-surface rounded-lg p-4 items-center"
+                >
+                  <Text className="text-foreground font-semibold">← Back</Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : (
+            <View className="flex-1 justify-center items-center p-6 gap-4">
+              <Text className="text-white text-lg font-semibold text-center">
+                Camera permission required
+              </Text>
+              <TouchableOpacity
+                onPress={requestPermission}
+                className="bg-primary rounded-lg p-4 px-8"
+              >
+                <Text className="text-background font-bold">Grant Permission</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScreenContainer>
     );
   }
 
-  // Step 3: Review
+  // Step 3: Review Details
   if (currentStep === 'review') {
     return (
       <ScreenContainer className="bg-background">
@@ -341,36 +330,37 @@ export default function LoginScreen() {
               <Text className="text-sm text-muted">Verify your information</Text>
             </View>
 
-            {/* Selfie Preview */}
+            {/* Error Message */}
+            {error ? (
+              <View className="bg-error/10 border border-error rounded-lg p-4">
+                <Text className="text-error font-medium">{error}</Text>
+              </View>
+            ) : null}
+
+            {/* Selfie */}
             {selfieUri && (
               <View className="gap-2">
                 <Text className="text-sm font-semibold text-foreground">Your Selfie</Text>
                 <Image
                   source={{ uri: selfieUri }}
-                  className="w-full h-64 rounded-lg bg-surface border border-border"
+                  className="w-full h-48 rounded-lg bg-surface"
                 />
               </View>
             )}
 
-            {/* Details Review */}
-            <View className="bg-surface border border-border rounded-lg p-4 gap-3">
-              <View className="gap-1">
-                <Text className="text-xs font-semibold text-muted">Operator Name</Text>
-                <Text className="text-foreground font-semibold">{operatorName}</Text>
+            {/* Details */}
+            <View className="bg-surface rounded-lg p-4 gap-4">
+              <View>
+                <Text className="text-xs font-semibold text-muted mb-1">Operator Name</Text>
+                <Text className="text-foreground font-medium">{operatorName}</Text>
               </View>
-
-              <View className="h-px bg-border" />
-
-              <View className="gap-1">
-                <Text className="text-xs font-semibold text-muted">Mobile Number</Text>
-                <Text className="text-foreground font-semibold">+91 {mobileNumber}</Text>
+              <View>
+                <Text className="text-xs font-semibold text-muted mb-1">Mobile Number</Text>
+                <Text className="text-foreground font-medium">+91 {mobileNumber}</Text>
               </View>
-
-              <View className="h-px bg-border" />
-
-              <View className="gap-1">
-                <Text className="text-xs font-semibold text-muted">Aadhaar Number</Text>
-                <Text className="text-foreground font-semibold">{maskedAadhaar}</Text>
+              <View>
+                <Text className="text-xs font-semibold text-muted mb-1">Aadhaar Number</Text>
+                <Text className="text-foreground font-medium">{maskedAadhaar}</Text>
               </View>
             </View>
 
@@ -382,26 +372,24 @@ export default function LoginScreen() {
                 className="bg-primary rounded-lg p-4 items-center"
               >
                 {loading ? (
-                  <ActivityIndicator color="#fff" />
+                  <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-white font-semibold text-lg">Confirm & Login</Text>
+                  <Text className="text-background font-bold text-lg">✓ Confirm & Login</Text>
                 )}
               </TouchableOpacity>
-
               <TouchableOpacity
                 onPress={handleRetakeSelfie}
                 disabled={loading}
                 className="bg-surface border border-border rounded-lg p-4 items-center"
               >
-                <Text className="text-foreground font-semibold">Retake Selfie</Text>
+                <Text className="text-foreground font-semibold">📸 Retake Selfie</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                onPress={() => setCurrentStep('form')}
+                onPress={handleEditDetails}
                 disabled={loading}
                 className="bg-surface border border-border rounded-lg p-4 items-center"
               >
-                <Text className="text-foreground font-semibold">Edit Details</Text>
+                <Text className="text-foreground font-semibold">✎ Edit Details</Text>
               </TouchableOpacity>
             </View>
           </View>
