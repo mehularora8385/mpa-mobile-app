@@ -1,8 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { useColors } from '@/hooks/use-colors';
-import { cn } from '@/lib/utils';
 
 interface SidebarItem {
   label: string;
@@ -22,12 +20,17 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
 export function SidebarNavigation() {
   const router = useRouter();
   const pathname = usePathname();
-  const colors = useColors();
 
   return (
-    <View className="w-56 bg-surface border-r border-border">
-      <ScrollView className="flex-1">
-        <View className="p-4 gap-2">
+    <View style={{
+      width: 224,
+      backgroundColor: '#f5f5f5',
+      borderRightWidth: 1,
+      borderRightColor: '#E5E7EB',
+      flexDirection: 'column',
+    }}>
+      <ScrollView style={{ flex: 1 }}>
+        <View style={{ paddingVertical: 16, paddingHorizontal: 16, gap: 8 }}>
           {SIDEBAR_ITEMS.map((item) => {
             const isActive = pathname === item.route || pathname.includes(item.route.split('/').pop() || '');
             
@@ -35,18 +38,22 @@ export function SidebarNavigation() {
               <Pressable
                 key={item.route}
                 onPress={() => router.push(item.route as any)}
-                className={cn(
-                  'p-4 rounded-lg border-2',
-                  isActive
-                    ? 'bg-primary border-primary'
-                    : 'bg-background border-border'
-                )}
+                style={{
+                  paddingVertical: 16,
+                  paddingHorizontal: 16,
+                  borderRadius: 8,
+                  borderWidth: 2,
+                  backgroundColor: isActive ? '#0a7ea4' : '#ffffff',
+                  borderColor: isActive ? '#0a7ea4' : '#E5E7EB',
+                }}
               >
                 <Text
-                  className={cn(
-                    'text-base font-semibold text-center',
-                    isActive ? 'text-background' : 'text-foreground'
-                  )}
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    color: isActive ? '#ffffff' : '#11181C',
+                  }}
                 >
                   {item.label}
                 </Text>
