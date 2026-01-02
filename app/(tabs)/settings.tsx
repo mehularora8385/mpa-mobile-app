@@ -167,7 +167,7 @@ export default function SettingsScreen() {
             <View className="gap-2">
               <View className="flex-row justify-between">
                 <Text className="text-foreground">App Name</Text>
-                <Text className="text-muted">SEPL Biometric</Text>
+                <Text className="text-muted">MPA BIO VERIFICATION</Text>
               </View>
               <View className="flex-row justify-between">
                 <Text className="text-foreground">Version</Text>
@@ -206,7 +206,7 @@ export default function SettingsScreen() {
 
           {/* Footer */}
           <View className="items-center gap-2 py-4">
-            <Text className="text-xs text-muted">SEPL Biometric Verification System</Text>
+            <Text className="text-xs text-muted">MPA BIO VERIFICATION System</Text>
             <Text className="text-xs text-muted">© 2026 All rights reserved</Text>
           </View>
         </View>

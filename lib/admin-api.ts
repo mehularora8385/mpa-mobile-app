@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ADMIN_PANEL_API = 'http://sepl-admin-portal.s3-website.ap-south-1.amazonaws.com';
+const ADMIN_PANEL_API = 'http://mpa-admin-portal.s3-website.ap-south-1.amazonaws.com';
 
 interface OperatorSession {
   operatorId: string;

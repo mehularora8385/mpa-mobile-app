@@ -16,7 +16,7 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useColors } from '@/hooks/use-colors';
 import * as Haptics from 'expo-haptics';
 
-const ADMIN_PANEL_API = 'http://sepl-admin-portal.s3-website.ap-south-1.amazonaws.com';
+const ADMIN_PANEL_API = 'http://mpa-admin-portal.s3-website.ap-south-1.amazonaws.com';
 
 export default function LoginScreen() {
   const colors = useColors();
@@ -219,7 +219,7 @@ export default function LoginScreen() {
           {/* Demo Credentials */}
           <View className="mt-8 p-4 rounded-lg" style={{ backgroundColor: colors.surface }}>
             <Text className="text-xs font-semibold text-muted mb-2">📌 Demo Credentials:</Text>
-            <Text className="text-xs text-muted">Email: admin@sepl.com</Text>
+            <Text className="text-xs text-muted">Email: admin@mpa.com</Text>
             <Text className="text-xs text-muted">Password: Admin@2026</Text>
             <Text className="text-xs text-muted mt-2">🔗 Synced with Admin Panel</Text>
           </View>
