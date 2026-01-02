@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScreenContainer } from '@/components/screen-container';
@@ -23,6 +24,17 @@ export default function OperatorLoginScreen() {
   const router = useRouter();
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
+
+  // Redirect to web-login on web platform
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      router.replace('/web-login');
+    }
+  }, []);
+
+  if (Platform.OS === 'web') {
+    return <View />; // Will redirect
+  }
 
   const [step, setStep] = useState<'form' | 'selfie'>('form');
   const [operatorName, setOperatorName] = useState('');
@@ -326,6 +338,8 @@ export default function OperatorLoginScreen() {
                     borderColor: colors.primary,
                     borderStyle: 'dashed',
                     opacity: loading ? 0.6 : 1,
+                    cursor: 'pointer',
+                    pointerEvents: 'auto',
                   }}
                 >
                   <Text className="text-2xl mb-2">📷</Text>
@@ -339,7 +353,7 @@ export default function OperatorLoginScreen() {
               onPress={handleLogin}
               disabled={loading}
               className="py-3 rounded-lg items-center justify-center mt-4"
-              style={{ backgroundColor: colors.primary, opacity: loading ? 0.6 : 1 }}
+              style={{ backgroundColor: colors.primary, opacity: loading ? 0.6 : 1, cursor: 'pointer', pointerEvents: 'auto' }}
             >
               {loading ? (
                 <ActivityIndicator color={colors.background} />

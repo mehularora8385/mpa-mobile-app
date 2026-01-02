@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { ScreenContainer } from './screen-container';
 import { useColors } from '@/hooks/use-colors';
 import { mockAuthService } from '@/lib/auth-mock';
-
 import { CameraView } from 'expo-camera';
 
 type LoginStep = 'form' | 'camera' | 'review';
@@ -248,22 +247,20 @@ export function LoginForm() {
               backgroundColor: '#f5f5f5',
               borderRadius: 8,
               overflow: 'hidden',
-              height: 256,
+              height: 300,
               marginBottom: 16,
             }}>
-              <CameraView
-                ref={cameraRef}
-                facing="front"
-                style={{ flex: 1 }}
-                onMountError={(error) => {
-                  console.log('Camera error:', error);
-                }}
-              />
+              <Text style={{
+                flex: 1,
+                textAlign: 'center',
+                textAlignVertical: 'center',
+                color: '#687076',
+              }}>📷 Camera Preview (Web)</Text>
             </View>
 
-            {/* Capture Selfie Button */}
+            {/* Capture Button */}
             <Pressable
-              onPress={handleCaptureSelfie}
+              onPress={handleMockCapture}
               disabled={loading}
               style={{
                 backgroundColor: '#0a7ea4',
@@ -271,7 +268,7 @@ export function LoginForm() {
                 paddingVertical: 16,
                 paddingHorizontal: 16,
                 alignItems: 'center',
-                opacity: loading ? 0.5 : 1,
+                marginBottom: 8,
               }}
             >
               <Text style={{
@@ -281,44 +278,21 @@ export function LoginForm() {
               }}>Capture Selfie</Text>
             </Pressable>
 
-            {/* Mock Capture Button */}
-            <Pressable
-              onPress={handleMockCapture}
-              disabled={loading}
-              style={{
-                backgroundColor: '#666666',
-                borderRadius: 8,
-                paddingVertical: 16,
-                paddingHorizontal: 16,
-                alignItems: 'center',
-                opacity: loading ? 0.5 : 1,
-              }}
-            >
-              <Text style={{
-                color: '#ffffff',
-                fontWeight: 'bold',
-                fontSize: 16,
-              }}>Capture Selfie (Mock)</Text>
-            </Pressable>
-
             {/* Back Button */}
             <Pressable
-              onPress={() => setStep('form')}
+              onPress={handleEditDetails}
               disabled={loading}
               style={{
-                backgroundColor: '#f5f5f5',
-                borderColor: '#E5E7EB',
-                borderWidth: 1,
+                backgroundColor: '#E5E7EB',
                 borderRadius: 8,
                 paddingVertical: 16,
                 paddingHorizontal: 16,
                 alignItems: 'center',
-                opacity: loading ? 0.5 : 1,
               }}
             >
               <Text style={{
                 color: '#11181C',
-                fontWeight: '600',
+                fontWeight: 'bold',
                 fontSize: 16,
               }}>Back</Text>
             </Pressable>
@@ -330,68 +304,48 @@ export function LoginForm() {
 
   // STEP 3: Review
   if (step === 'review') {
-    const maskedAadhaar = aadhaarNumber.slice(0, 2) + '*'.repeat(8) + aadhaarNumber.slice(-2);
-
     return (
       <ScreenContainer className="p-6">
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-          <View className="flex-1 gap-4">
+          <View className="flex-1 gap-6">
             <View style={{ alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0a7ea4' }}>MPA</Text>
-              <Text style={{ fontSize: 18, fontWeight: '600', color: '#11181C' }}>Biometric Verification</Text>
-              <Text style={{ fontSize: 14, color: '#687076' }}>Review Details</Text>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: '#11181C' }}>Review Details</Text>
             </View>
 
-            {/* Selfie */}
-            <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: '#11181C' }}>Your Selfie</Text>
-              <View style={{
-                backgroundColor: '#f5f5f5',
-                borderRadius: 8,
-                height: 240,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: '#E5E7EB',
-                overflow: 'hidden',
-              }}>
-                {selfieUri && selfieUri !== 'mock-selfie-uri' ? (
-                  <Image
-                    source={{ uri: selfieUri }}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      resizeMode: 'cover',
-                    }}
-                  />
-                ) : (
-                  <View style={{ alignItems: 'center', gap: 8 }}>
-                    <Text style={{ fontSize: 48 }}>📸</Text>
-                    <Text style={{ color: '#687076', fontSize: 14 }}>Mock selfie</Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Details */}
+            {/* Selfie Preview */}
             <View style={{
               backgroundColor: '#f5f5f5',
               borderRadius: 8,
-              paddingVertical: 16,
-              paddingHorizontal: 16,
-              gap: 12,
+              overflow: 'hidden',
+              height: 250,
+              marginBottom: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}>
-              <View>
-                <Text style={{ fontSize: 12, color: '#687076', marginBottom: 4 }}>Operator Name</Text>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: '#11181C' }}>{operatorName}</Text>
+              {selfieUri ? (
+                <Image
+                  source={{ uri: selfieUri }}
+                  style={{ width: '100%', height: '100%' }}
+                />
+              ) : (
+                <Text style={{ color: '#687076' }}>📷 Selfie Preview</Text>
+              )}
+            </View>
+
+            {/* Details */}
+            <View style={{ gap: 12 }}>
+              <View style={{ gap: 4 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#687076' }}>Name</Text>
+                <Text style={{ fontSize: 16, fontWeight: '500', color: '#11181C' }}>{operatorName}</Text>
               </View>
-              <View>
-                <Text style={{ fontSize: 12, color: '#687076', marginBottom: 4 }}>Mobile Number</Text>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: '#11181C' }}>+91 {mobileNumber}</Text>
+              <View style={{ gap: 4 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#687076' }}>Mobile</Text>
+                <Text style={{ fontSize: 16, fontWeight: '500', color: '#11181C' }}>{mobileNumber}</Text>
               </View>
-              <View>
-                <Text style={{ fontSize: 12, color: '#687076', marginBottom: 4 }}>Aadhaar Number</Text>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: '#11181C' }}>{maskedAadhaar}</Text>
+              <View style={{ gap: 4 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#687076' }}>Aadhaar</Text>
+                <Text style={{ fontSize: 16, fontWeight: '500', color: '#11181C' }}>****{aadhaarNumber.slice(-4)}</Text>
               </View>
             </View>
 
@@ -412,9 +366,7 @@ export function LoginForm() {
                 color: '#ffffff',
                 fontWeight: 'bold',
                 fontSize: 16,
-              }}>
-                {loading ? 'Logging in...' : 'Confirm and Login'}
-              </Text>
+              }}>{loading ? 'Logging in...' : 'Confirm & Login'}</Text>
             </Pressable>
 
             {/* Retake Button */}
@@ -422,43 +374,18 @@ export function LoginForm() {
               onPress={handleRetakeSelfie}
               disabled={loading}
               style={{
-                backgroundColor: '#f5f5f5',
-                borderColor: '#E5E7EB',
-                borderWidth: 1,
+                backgroundColor: '#E5E7EB',
                 borderRadius: 8,
                 paddingVertical: 16,
                 paddingHorizontal: 16,
                 alignItems: 'center',
-                opacity: loading ? 0.5 : 1,
               }}
             >
               <Text style={{
                 color: '#11181C',
-                fontWeight: '600',
+                fontWeight: 'bold',
                 fontSize: 16,
               }}>Retake Selfie</Text>
-            </Pressable>
-
-            {/* Edit Details Button */}
-            <Pressable
-              onPress={handleEditDetails}
-              disabled={loading}
-              style={{
-                backgroundColor: '#f5f5f5',
-                borderColor: '#E5E7EB',
-                borderWidth: 1,
-                borderRadius: 8,
-                paddingVertical: 16,
-                paddingHorizontal: 16,
-                alignItems: 'center',
-                opacity: loading ? 0.5 : 1,
-              }}
-            >
-              <Text style={{
-                color: '#11181C',
-                fontWeight: '600',
-                fontSize: 16,
-              }}>Edit Details</Text>
             </Pressable>
           </View>
         </ScrollView>
