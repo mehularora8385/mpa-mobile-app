@@ -1,13 +1,14 @@
-# Examination Management & Biometric Verification System - Design Document
+# MPA BIO VERIFICATION - Mobile App Design
 
-## System Overview
+## App Overview
 
-A comprehensive examination management platform with three separate applications:
-1. **Operator Android App** - Field-level biometric verification and candidate registration
-2. **Admin Panel** - Complete system administration and exam management
-3. **Central Dashboard** - Real-time monitoring and analytics
+**App Name:** MPA BIO VERIFICATION
+**Brand:** CROIRE - Smart Biometric Solution with AI
+**Purpose:** Biometric enrollment and verification for examination candidates
+**Platform:** iOS & Android (React Native/Expo)
+**Integration:** Connected to SEPL Admin Panel
 
-All components are isolated with separate authentication and deployed on AWS.
+The app captures biometric data (fingerprint, iris, face) during exam enrollment and verification stages with 99.1% accuracy and real-time sync to admin panel.
 
 ---
 

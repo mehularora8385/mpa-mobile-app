@@ -1,15 +1,11 @@
-# Examination Management System - Project TODO
+# MPA BIO VERIFICATION - Development TODO
 
-## PHASE 1: OPERATOR ANDROID APP
-
-### CURRENT PHASE: FIX SIDEBAR VISIBILITY & PROFESSIONAL DESIGN
-- [ ] Hide sidebar on login screen - show only login form
-- [ ] Show sidebar only after successful login
-- [ ] Improve professional design and styling
-- [ ] Fix menu visibility bug (showing before login)
-- [ ] Make login screen full-width and centered
-- [ ] Add proper spacing and padding
-- [ ] Test complete flow with fixed navigation
+## PHASE 1: APP SETUP & BRANDING
+- [ ] Update app name to "MPA BIO VERIFICATION" in app.config.ts
+- [ ] Generate app logo (CROIRE branding - blue gradient)
+- [ ] Update app colors (primary: #0052CC, secondary: #1E88E5)
+- [ ] Update theme colors in theme.config.js
+- [ ] Update design.md with complete specifications
 
 ### Authentication & Registration
 - [x] NEW: Enhanced login screen with operator name, mobile, aadhaar, selfie

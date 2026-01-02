@@ -1,39 +1,112 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StyleSheet, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScreenContainer } from '@/components/screen-container';
-import { authService } from '@/lib/auth-service';
+import { useColors } from '@/hooks/use-colors';
 import * as Haptics from 'expo-haptics';
 
+const ADMIN_PANEL_API = 'http://sepl-admin-portal.s3-website.ap-south-1.amazonaws.com';
+
 export default function LoginScreen() {
+  const colors = useColors();
   const router = useRouter();
-  const [operatorId, setOperatorId] = useState('');
+
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Load saved email if remember me was checked
+  useEffect(() => {
+    const loadSavedEmail = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('rememberMe');
+        const savedEmail = await AsyncStorage.getItem('savedEmail');
+        if (saved === 'true' && savedEmail) {
+          setEmail(savedEmail);
+          setRememberMe(true);
+        }
+      } catch (error) {
+        console.error('Error loading saved email:', error);
+      }
+    };
+    loadSavedEmail();
+  }, []);
 
   const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Error', 'Please enter email and password');
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
+    setLoading(true);
     try {
-      setError('');
-      setLoading(true);
-
-      if (!operatorId.trim() || !password.trim()) {
-        setError('Please enter operator ID and password');
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-
-      const session = await authService.login({
-        operatorIdOrMobile: operatorId,
-        password,
+      // Authenticate with admin panel
+      const response = await fetch(`${ADMIN_PANEL_API}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password.trim(),
+        }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Invalid credentials');
+      }
+
+      const data = await response.json();
+
+      // Verify operator data
+      if (!data.operator) {
+        throw new Error('No operator data received from admin panel');
+      }
+
+      // Save operator session
+      const sessionData = {
+        operatorId: data.operator.id,
+        operatorName: data.operator.name,
+        email: data.operator.email,
+        centre: data.operator.centre,
+        exam: data.operator.exam,
+        token: data.token,
+        adminPanelUrl: ADMIN_PANEL_API,
+        loginTime: new Date().toISOString(),
+      };
+
+      await AsyncStorage.setItem('operatorSession', JSON.stringify(sessionData));
+
+      if (rememberMe) {
+        await AsyncStorage.setItem('rememberMe', 'true');
+        await AsyncStorage.setItem('savedEmail', email);
+      } else {
+        await AsyncStorage.removeItem('rememberMe');
+        await AsyncStorage.removeItem('savedEmail');
+      }
+
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      // Navigate to home
       router.replace('/');
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
-      setError(errorMessage);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please check your credentials.';
+      Alert.alert('Login Failed', errorMessage);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setLoading(false);
@@ -41,106 +114,117 @@ export default function LoginScreen() {
   };
 
   return (
-    <ScreenContainer className="bg-background">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-6">
-        <View className="flex-1 justify-center gap-8">
-          {/* Header */}
-          <View className="items-center gap-2">
-            <Text className="text-4xl font-bold text-primary">Exam Operator</Text>
-            <Text className="text-base text-muted text-center">
-              Biometric Verification System
-            </Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <ScreenContainer className="justify-center p-6">
+        <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
+          {/* Logo Area */}
+          <View className="items-center mb-8">
+            <View
+              className="w-20 h-20 rounded-full mb-4 items-center justify-center"
+              style={{ backgroundColor: colors.primary }}
+            >
+              <Text className="text-white text-4xl">📱</Text>
+            </View>
+            <Text className="text-3xl font-bold text-foreground mb-2">MPA BIO</Text>
+            <Text className="text-lg text-muted text-center">Biometric Verification System</Text>
+            <Text className="text-xs text-muted mt-2">Connected to Admin Panel</Text>
           </View>
 
-          {/* Error Message */}
-          {error ? (
-            <View className="bg-error/10 border border-error rounded-lg p-4">
-              <Text className="text-error font-medium">{error}</Text>
-            </View>
-          ) : null}
-
-          {/* Form */}
+          {/* Login Form */}
           <View className="gap-4">
-            {/* Operator ID Input */}
-            <View className="gap-2">
-              <Text className="text-sm font-semibold text-foreground">
-                Operator ID or Mobile
-              </Text>
+            {/* Email Input */}
+            <View>
+              <Text className="text-sm font-semibold text-foreground mb-2">Email or Operator ID</Text>
               <TextInput
-                className="bg-surface border border-border rounded-lg p-4 text-foreground"
-                placeholder="Enter operator ID or mobile"
-                placeholderTextColor="#999"
-                value={operatorId}
-                onChangeText={setOperatorId}
+                placeholder="Enter your email or operator ID"
+                placeholderTextColor={colors.muted}
+                value={email}
+                onChangeText={setEmail}
                 editable={!loading}
-                keyboardType="default"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                className="border rounded-lg px-4 py-3 text-foreground"
+                style={{
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  color: colors.foreground,
+                }}
               />
             </View>
 
             {/* Password Input */}
-            <View className="gap-2">
-              <Text className="text-sm font-semibold text-foreground">
-                Password
-              </Text>
-              <View className="flex-row items-center bg-surface border border-border rounded-lg">
+            <View>
+              <Text className="text-sm font-semibold text-foreground mb-2">Password</Text>
+              <View
+                className="flex-row items-center border rounded-lg px-4 py-3"
+                style={{ borderColor: colors.border, borderWidth: 1 }}
+              >
                 <TextInput
-                  className="flex-1 p-4 text-foreground"
-                  placeholder="Enter password"
-                  placeholderTextColor="#999"
+                  placeholder="Enter your password"
+                  placeholderTextColor={colors.muted}
                   value={password}
                   onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
                   editable={!loading}
+                  secureTextEntry={!showPassword}
+                  className="flex-1 text-foreground"
+                  style={{ color: colors.foreground }}
                 />
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                  className="px-4"
-                  disabled={loading}
-                >
-                  <Text className="text-primary font-semibold">
-                    {showPassword ? 'Hide' : 'Show'}
-                  </Text>
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} disabled={loading}>
+                  <Text className="text-xl ml-2">{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Remember Device */}
-            <View className="flex-row items-center gap-2">
-              <View className="w-5 h-5 border-2 border-primary rounded bg-primary" />
-              <Text className="text-sm text-muted">Remember this device</Text>
-            </View>
-          </View>
+            {/* Remember Me */}
+            <TouchableOpacity
+              className="flex-row items-center gap-2"
+              onPress={() => setRememberMe(!rememberMe)}
+              disabled={loading}
+            >
+              <View
+                className="w-5 h-5 rounded border-2"
+                style={{
+                  borderColor: rememberMe ? colors.primary : colors.border,
+                  backgroundColor: rememberMe ? colors.primary : 'transparent',
+                }}
+              />
+              <Text className="text-sm text-muted">Remember me</Text>
+            </TouchableOpacity>
 
-          {/* Login Button */}
-          <Pressable
-            onPress={handleLogin}
-            disabled={loading}
-            style={({ pressed }: any) => ([
-              { backgroundColor: '#0066CC', borderRadius: 8, padding: 16, alignItems: 'center' },
-              pressed && !loading && { opacity: 0.8, transform: [{ scale: 0.97 }] },
-            ])}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white font-semibold text-lg">Login</Text>
-            )}
-          </Pressable>
+            {/* Login Button */}
+            <TouchableOpacity
+              onPress={handleLogin}
+              disabled={loading}
+              className="py-3 rounded-lg items-center justify-center mt-4"
+              style={{ backgroundColor: colors.primary, opacity: loading ? 0.6 : 1 }}
+            >
+              {loading ? (
+                <ActivityIndicator color={colors.background} />
+              ) : (
+                <Text className="text-white font-semibold text-base">Login</Text>
+              )}
+            </TouchableOpacity>
 
-          {/* Register Link */}
-          <View className="flex-row justify-center gap-2">
-            <Text className="text-muted">New operator?</Text>
-            <TouchableOpacity onPress={() => null}>
-              <Text className="text-primary font-semibold">Register here</Text>
+            {/* Forgot Password */}
+            <TouchableOpacity disabled={loading}>
+              <Text className="text-center text-sm" style={{ color: colors.primary }}>
+                Forgot Password?
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Forgot Password */}
-          <TouchableOpacity className="items-center">
-            <Text className="text-primary text-sm">Forgot password?</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </ScreenContainer>
+          {/* Demo Credentials */}
+          <View className="mt-8 p-4 rounded-lg" style={{ backgroundColor: colors.surface }}>
+            <Text className="text-xs font-semibold text-muted mb-2">📌 Demo Credentials:</Text>
+            <Text className="text-xs text-muted">Email: admin@sepl.com</Text>
+            <Text className="text-xs text-muted">Password: Admin@2026</Text>
+            <Text className="text-xs text-muted mt-2">🔗 Synced with Admin Panel</Text>
+          </View>
+        </ScrollView>
+      </ScreenContainer>
+    </KeyboardAvoidingView>
   );
 }
