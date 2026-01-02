@@ -115,7 +115,7 @@ export function LoginForm() {
           <View className="flex-1 gap-6">
             {/* Header */}
             <View style={{ alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#0a7ea4' }}>SEPL</Text>
+              <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#0a7ea4' }}>MPA</Text>
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#11181C' }}>Biometric Verification</Text>
               <Text style={{ fontSize: 14, color: '#687076' }}>Operator Login</Text>
             </View>
@@ -239,7 +239,7 @@ export function LoginForm() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <View className="flex-1 gap-4">
             <View style={{ alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0a7ea4' }}>SEPL</Text>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0a7ea4' }}>MPA</Text>
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#11181C' }}>Capture Selfie</Text>
             </View>
 
@@ -337,7 +337,7 @@ export function LoginForm() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <View className="flex-1 gap-4">
             <View style={{ alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0a7ea4' }}>SEPL</Text>
+              <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#0a7ea4' }}>MPA</Text>
               <Text style={{ fontSize: 18, fontWeight: '600', color: '#11181C' }}>Biometric Verification</Text>
               <Text style={{ fontSize: 14, color: '#687076' }}>Review Details</Text>
             </View>

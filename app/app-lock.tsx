@@ -168,7 +168,7 @@ export default function AppLockScreen() {
 
         {/* Footer */}
         <Text className="text-xs text-muted text-center">
-          SEPL Biometric Verification System
+          MPA Biometric Verification
         </Text>
       </View>
     </ScreenContainer>
