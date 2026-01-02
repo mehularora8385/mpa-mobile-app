@@ -18,15 +18,13 @@ import { ScreenContainer } from '@/components/screen-container';
 import { useColors } from '@/hooks/use-colors';
 import * as Haptics from 'expo-haptics';
 
-const ADMIN_PANEL_API = 'http://sepl-admin-portal.s3-website.ap-south-1.amazonaws.com';
-
 export default function OperatorLoginScreen() {
   const colors = useColors();
   const router = useRouter();
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
 
-  const [step, setStep] = useState<'form' | 'selfie' | 'loading'>('form');
+  const [step, setStep] = useState<'form' | 'selfie'>('form');
   const [operatorName, setOperatorName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [aadhaarNumber, setAadhaarNumber] = useState('');
@@ -51,7 +49,6 @@ export default function OperatorLoginScreen() {
       setLoading(true);
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.8,
-        base64: true,
       });
 
       if (photo?.uri) {
@@ -88,83 +85,40 @@ export default function OperatorLoginScreen() {
 
     setLoading(true);
     try {
-      // Check if same phone + exam already logged in
-      const existingSessions = await AsyncStorage.getItem('operatorSessions');
-      const sessions = existingSessions ? JSON.parse(existingSessions) : [];
-
-      // Get current exam from admin panel
-      const examResponse = await fetch(`${ADMIN_PANEL_API}/api/exams/current`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!examResponse.ok) {
-        throw new Error('Failed to get current exam');
+      // Check if same phone number already logged in
+      const existingOperator = await AsyncStorage.getItem('currentOperator');
+      if (existingOperator) {
+        const existing = JSON.parse(existingOperator);
+        if (existing.phoneNumber === phoneNumber.trim()) {
+          Alert.alert(
+            'Error',
+            'This phone number is already logged in. Please logout first or use a different device.'
+          );
+          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          setLoading(false);
+          return;
+        }
       }
 
-      const examData = await examResponse.json();
-      const currentExam = examData.exam;
-
-      // Check for duplicate login
-      const duplicateSession = sessions.find(
-        (s: any) => s.phoneNumber === phoneNumber && s.exam === currentExam
-      );
-
-      if (duplicateSession) {
-        Alert.alert(
-          'Error',
-          `This phone number is already logged in for ${currentExam}. Please logout from other device first.`
-        );
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        setLoading(false);
-        return;
-      }
-
-      // Validate with admin panel
-      const loginResponse = await fetch(`${ADMIN_PANEL_API}/api/operator/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operatorName: operatorName.trim(),
-          phoneNumber: phoneNumber.trim(),
-          aadhaarNumber: aadhaarNumber.trim(),
-          selfie: selfieImage,
-          exam: currentExam,
-        }),
-      });
-
-      if (!loginResponse.ok) {
-        const error = await loginResponse.json();
-        throw new Error(error.message || 'Login failed');
-      }
-
-      const loginData = await loginResponse.json();
-
-      // Save operator session
+      // Save operator session locally
       const operatorSession = {
-        operatorId: loginData.operatorId,
-        operatorName,
-        phoneNumber,
-        aadhaarNumber,
-        exam: currentExam,
-        centre: loginData.centre,
-        token: loginData.token,
-        loginTime: new Date().toISOString(),
+        operatorId: `OP_${Date.now()}`,
+        operatorName: operatorName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        aadhaarNumber: aadhaarNumber.trim(),
         selfie: selfieImage,
+        loginTime: new Date().toISOString(),
       };
 
-      // Add to sessions list
-      sessions.push(operatorSession);
-      await AsyncStorage.setItem('operatorSessions', JSON.stringify(sessions));
       await AsyncStorage.setItem('currentOperator', JSON.stringify(operatorSession));
 
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert('Success', `Welcome ${operatorName}!`);
 
       // Navigate to home
       router.replace('/(tabs)');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      Alert.alert('Login Failed', errorMessage);
+      Alert.alert('Error', 'Failed to save operator data');
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setLoading(false);
@@ -220,7 +174,7 @@ export default function OperatorLoginScreen() {
                 }}
               >
                 <Text className="text-white text-center font-semibold">
-                  Position your face in the circle and tap capture
+                  Position your face in the circle
                 </Text>
               </View>
             </View>
@@ -399,13 +353,13 @@ export default function OperatorLoginScreen() {
           <View className="mt-8 p-4 rounded-lg" style={{ backgroundColor: colors.surface }}>
             <Text className="text-xs font-semibold text-muted mb-2">ℹ️ Important:</Text>
             <Text className="text-xs text-muted">
-              • Use same phone for same exam to prevent duplicate logins
+              • Same phone number cannot be used on multiple devices
             </Text>
             <Text className="text-xs text-muted">
-              • Selfie will be verified with Aadhaar
+              • Logout from other device if same phone is already logged in
             </Text>
             <Text className="text-xs text-muted">
-              • Admin can logout all devices anytime
+              • Admin can logout all devices from admin panel
             </Text>
           </View>
         </ScrollView>
