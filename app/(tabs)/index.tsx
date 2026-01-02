@@ -43,6 +43,7 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<'download' | 'register' | 'verify' | 'sync'>('download');
+  const [operatorName, setOperatorNameState] = useState('');
   const [operator, setOperator] = useState<Operator | null>(null);
   const [loading, setLoading] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -181,10 +182,82 @@ export default function HomeScreen() {
     setFilteredCandidates(filtered);
   };
 
+  // TAB NAVIGATION HEADER
+  const renderTabNavigation = () => (
+    <View className="flex-row bg-surface border-b" style={{ borderBottomColor: colors.border }}>
+      <TouchableOpacity
+        onPress={() => setActiveTab('download')}
+        className="flex-1 py-3 items-center border-b-2"
+        style={{
+          borderBottomColor: activeTab === 'download' ? colors.primary : 'transparent',
+        }}
+      >
+        <Text
+          style={{
+            color: activeTab === 'download' ? colors.primary : colors.muted,
+            fontWeight: activeTab === 'download' ? '600' : '400',
+          }}
+        >
+          📥 Download
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => setActiveTab('register')}
+        className="flex-1 py-3 items-center border-b-2"
+        style={{
+          borderBottomColor: activeTab === 'register' ? colors.primary : 'transparent',
+        }}
+      >
+        <Text
+          style={{
+            color: activeTab === 'register' ? colors.primary : colors.muted,
+            fontWeight: activeTab === 'register' ? '600' : '400',
+          }}
+        >
+          📝 Register
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => setActiveTab('verify')}
+        className="flex-1 py-3 items-center border-b-2"
+        style={{
+          borderBottomColor: activeTab === 'verify' ? colors.primary : 'transparent',
+        }}
+      >
+        <Text
+          style={{
+            color: activeTab === 'verify' ? colors.primary : colors.muted,
+            fontWeight: activeTab === 'verify' ? '600' : '400',
+          }}
+        >
+          ✓ Verify
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => setActiveTab('sync')}
+        className="flex-1 py-3 items-center border-b-2"
+        style={{
+          borderBottomColor: activeTab === 'sync' ? colors.primary : 'transparent',
+        }}
+      >
+        <Text
+          style={{
+            color: activeTab === 'sync' ? colors.primary : colors.muted,
+            fontWeight: activeTab === 'sync' ? '600' : '400',
+          }}
+        >
+          🔄 Sync
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   // TAB 1: DATA DOWNLOAD
   if (activeTab === 'download') {
     return (
-      <ScreenContainer className="p-4">
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {renderTabNavigation()}
+        <ScreenContainer className="p-4">
         <View className="mb-4">
           <Text className="text-2xl font-bold text-foreground mb-2">📥 Data Download</Text>
           <Text className="text-sm text-muted">Select centre and download candidate data</Text>
@@ -318,61 +391,72 @@ export default function HomeScreen() {
           </View>
         ) : (
           <View className="gap-4">
-            <Text className="text-sm font-semibold text-foreground">Enter Password</Text>
-            <TextInput
-              placeholder={`Enter ${dataType} data password`}
-              placeholderTextColor={colors.muted}
-              value={dataType === 'mock' ? mockPassword : examPassword}
-              onChangeText={dataType === 'mock' ? setMockPassword : setExamPassword}
-              secureTextEntry
-              className="border rounded-lg px-4 py-3 text-foreground"
-              style={{
-                borderColor: colors.border,
-                borderWidth: 1,
-                color: colors.foreground,
-              }}
-            />
+            <View className="p-4 rounded-lg" style={{ backgroundColor: colors.surface }}>
+              <Text className="text-sm font-semibold text-foreground mb-3">Enter Password</Text>
+              <TextInput
+                placeholder={`Enter ${dataType} data password`}
+                placeholderTextColor={colors.muted}
+                value={dataType === 'mock' ? mockPassword : examPassword}
+                onChangeText={dataType === 'mock' ? setMockPassword : setExamPassword}
+                secureTextEntry
+                className="border rounded-lg px-4 py-3 text-foreground mb-4"
+                style={{
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  color: colors.foreground,
+                }}
+              />
 
-            <View className="flex-row gap-2">
-              <TouchableOpacity
-                onPress={() => setShowPasswordInput(false)}
-                className="flex-1 py-3 rounded-lg items-center"
-                style={{ backgroundColor: colors.border }}
-              >
-                <Text className="text-foreground font-semibold">Cancel</Text>
-              </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleDownloadData}
-                disabled={loading}
-                className="flex-1 py-3 rounded-lg items-center"
-                style={{ backgroundColor: colors.primary, opacity: loading ? 0.6 : 1 }}
+                disabled={loading || (!mockPassword && dataType === 'mock') || (!examPassword && dataType === 'exam')}
+                className="py-3 rounded-lg items-center mb-2"
+                style={{
+                  backgroundColor: colors.primary,
+                  opacity: loading || (!mockPassword && dataType === 'mock') || (!examPassword && dataType === 'exam') ? 0.5 : 1,
+                }}
               >
                 {loading ? (
                   <ActivityIndicator color={colors.background} />
                 ) : (
-                  <Text className="text-white font-semibold">Download</Text>
+                  <Text className="text-white font-semibold">📥 Download Data</Text>
                 )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowPasswordInput(false);
+                  setMockPassword('');
+                  setExamPassword('');
+                }}
+                className="py-3 rounded-lg items-center"
+                style={{ backgroundColor: colors.border }}
+              >
+                <Text className="text-foreground font-semibold">Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
 
-        {/* Logout Button */}
-        <TouchableOpacity
-          onPress={handleLogout}
-          className="mt-6 py-3 rounded-lg items-center"
-          style={{ backgroundColor: '#FF6B6B' }}
-        >
-          <Text className="text-white font-semibold">🚪 Logout</Text>
-        </TouchableOpacity>
-      </ScreenContainer>
+          {/* Logout Button */}
+          <TouchableOpacity
+            onPress={handleLogout}
+            className="mt-6 py-3 rounded-lg items-center"
+            style={{ backgroundColor: '#FF6B6B' }}
+          >
+            <Text className="text-white font-semibold">🚪 Logout</Text>
+          </TouchableOpacity>
+        </ScreenContainer>
+      </View>
     );
   }
 
   // TAB 2: REGISTER CANDIDATE
   if (activeTab === 'register') {
     return (
-      <ScreenContainer className="p-4">
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {renderTabNavigation()}
+        <ScreenContainer className="p-4">
         <View className="mb-4">
           <Text className="text-2xl font-bold text-foreground mb-2">📝 Register Candidate</Text>
           <Text className="text-sm text-muted">Scan roll number and mark attendance</Text>
@@ -437,14 +521,17 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
-      </ScreenContainer>
+        </ScreenContainer>
+      </View>
     );
   }
 
   // TAB 3: VERIFY CANDIDATE
   if (activeTab === 'verify') {
     return (
-      <ScreenContainer className="p-4">
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {renderTabNavigation()}
+        <ScreenContainer className="p-4">
         <View className="mb-4">
           <Text className="text-2xl font-bold text-foreground mb-2">✓ Verify Candidate</Text>
           <Text className="text-sm text-muted">Scan roll number and verify biometrics</Text>
@@ -525,14 +612,17 @@ export default function HomeScreen() {
             </View>
           )}
         </View>
-      </ScreenContainer>
+        </ScreenContainer>
+      </View>
     );
   }
 
   // TAB 4: SYNC STATUS
   if (activeTab === 'sync') {
     return (
-      <ScreenContainer className="p-4">
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        {renderTabNavigation()}
+        <ScreenContainer className="p-4">
         <View className="mb-4">
           <Text className="text-2xl font-bold text-foreground mb-2">🔄 Sync Status</Text>
           <Text className="text-sm text-muted">View sync status and pending data</Text>
@@ -573,7 +663,8 @@ export default function HomeScreen() {
             <Text className="text-xs text-muted">2024-01-02 10:30:45</Text>
           </View>
         </View>
-      </ScreenContainer>
+        </ScreenContainer>
+      </View>
     );
   }
 
