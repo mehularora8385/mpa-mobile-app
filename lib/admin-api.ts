@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Backend API endpoint - update this when you change servers
+const BACKEND_API = 'http://13.204.65.158';
 const ADMIN_PANEL_API = 'http://mpa-admin-portal.s3-website.ap-south-1.amazonaws.com';
 
 interface OperatorSession {
@@ -58,8 +60,9 @@ class AdminPanelAPI {
       const session = await this.getOperatorSession();
       if (!session) throw new Error('No active session');
 
+      // Call backend API instead of admin panel
       const response = await fetch(
-        `${this.baseUrl}/api/candidates/download?exam=${exam}&centre=${centre}`,
+        `${BACKEND_API}/api/candidates?examId=${exam}&centreId=${centre}`,
         {
           method: 'GET',
           headers: {
@@ -101,7 +104,8 @@ class AdminPanelAPI {
       const session = await this.getOperatorSession();
       if (!session) throw new Error('No active session');
 
-      const response = await fetch(`${this.baseUrl}/api/biometric/upload`, {
+      // Call backend API instead of admin panel
+      const response = await fetch(`${BACKEND_API}/api/biometric/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,7 +180,8 @@ class AdminPanelAPI {
       const session = await this.getOperatorSession();
       if (!session) throw new Error('No active session');
 
-      const response = await fetch(`${this.baseUrl}/api/biometric/verify`, {
+      // Call backend API instead of admin panel
+      const response = await fetch(`${BACKEND_API}/api/biometric/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -241,7 +246,8 @@ class AdminPanelAPI {
     try {
       const session = await this.getOperatorSession();
       if (session) {
-        await fetch(`${this.baseUrl}/api/auth/logout`, {
+        // Call backend API instead of admin panel
+        await fetch(`${BACKEND_API}/api/auth/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${session.token}`,
