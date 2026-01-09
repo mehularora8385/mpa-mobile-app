@@ -1,4 +1,5 @@
-import { ScrollView, Text, View, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { ScrollView, Text, View, TouchableOpacity, TextInput, Alert, ActivityIndicator, Modal } from 'react-native';
+import OMRCameraScanner from '@/components/OMRCameraScanner';
 import { ScreenContainer } from '@/components/screen-container';
 import { mockCandidatesService } from '@/lib/mock-candidates';
 import { useState } from 'react';
@@ -11,6 +12,7 @@ export default function VerificationScreen() {
   const [photoTaken, setPhotoTaken] = useState(false);
   const [fingerprintScanned, setFingerprintScanned] = useState(false);
   const [omrSerial, setOmrSerial] = useState('');
+  const [isScannerVisible, setScannerVisible] = useState(false);
   const [verifying, setVerifying] = useState(false);
 
   const handleSearch = async () => {
@@ -65,6 +67,12 @@ export default function VerificationScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+    const handleOMRScanSuccess = (result) => {
+    setOmrSerial(result.serialNumber);
+    setScannerVisible(false);
+    Alert.alert('Scan Successful', `OMR Serial Number: ${result.serialNumber}`);
   };
 
   const handleVerify = async () => {
@@ -243,6 +251,9 @@ export default function VerificationScreen() {
               <View className="gap-2">
                 <Text className="text-sm font-semibold text-foreground">Step 3: OMR Serial Number</Text>
                 <Text className="text-xs text-muted">Enter or scan OMR serial number</Text>
+                  <TouchableOpacity onPress={() => setScannerVisible(true)} className="bg-secondary rounded-lg p-3 items-center justify-center mt-2">
+                    <Text className="text-white font-semibold">Scan OMR with Camera</Text>
+                  </TouchableOpacity>
 
                 <View className="flex-row gap-2">
                   <TextInput
@@ -311,6 +322,17 @@ export default function VerificationScreen() {
           </View>
         </View>
       </ScrollView>
+        <Modal
+          animationType="slide"
+          transparent={false}
+          visible={isScannerVisible}
+          onRequestClose={() => setScannerVisible(false)}
+        >
+          <OMRCameraScanner 
+            onScanSuccess={handleOMRScanSuccess} 
+            onClose={() => setScannerVisible(false)} 
+          />
+        </Modal>
     </ScreenContainer>
   );
 }
