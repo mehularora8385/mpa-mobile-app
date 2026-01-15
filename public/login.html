@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPA BIO - Operator Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: #0a7ea4;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto 20px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #11181C;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #687076;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #11181C;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #0a7ea4;
+            box-shadow: 0 0 0 3px rgba(10, 126, 164, 0.1);
+        }
+
+        input::placeholder {
+            color: #9BA1A6;
+        }
+
+        .error {
+            background: #FEE2E2;
+            border: 1px solid #FCA5A5;
+            color: #DC2626;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #0a7ea4;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #086b8c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(10, 126, 164, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #E5E7EB;
+            color: #11181C;
+            display: none;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #D1D5DB;
+        }
+
+        .btn-secondary.show {
+            display: block;
+        }
+
+        .review-section {
+            display: none;
+        }
+
+        .review-section.show {
+            display: block;
+        }
+
+        .form-section {
+            display: block;
+        }
+
+        .form-section.hide {
+            display: none;
+        }
+
+        .review-item {
+            background: #F9FAFB;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border: 1px solid #E5E7EB;
+        }
+
+        .review-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #687076;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .review-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #11181C;
+        }
+
+        .test-credentials {
+            background: #F0F9FF;
+            border: 1px solid #BAE6FD;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #0369A1;
+            margin-top: 20px;
+        }
+
+        .test-credentials strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">📱</div>
+            <div class="title">MPA BIO</div>
+            <div class="subtitle">Operator Login</div>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error" id="errorMessage"></div>
+
+        <!-- Form Section -->
+        <div class="form-section" id="formSection">
+            <form id="loginForm" onsubmit="handleContinue(event)">
+                <div class="form-group">
+                    <label for="operatorName">Operator Name</label>
+                    <input
+                        type="text"
+                        id="operatorName"
+                        placeholder="Enter your full name"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="phoneNumber">Phone Number</label>
+                    <input
+                        type="tel"
+                        id="phoneNumber"
+                        placeholder="Enter 10-digit phone number"
+                        maxlength="10"
+                        pattern="\d{10}"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="aadhaarNumber">Aadhaar Number</label>
+                    <input
+                        type="password"
+                        id="aadhaarNumber"
+                        placeholder="Enter 12-digit Aadhaar number"
+                        maxlength="12"
+                        pattern="\d{12}"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="btn-primary" id="continueBtn">
+                    Continue
+                </button>
+            </form>
+
+            <div class="test-credentials">
+                <strong>TEST CREDENTIALS:</strong>
+                Mobile: 9730018733<br>
+                Aadhaar: 659999999978<br>
+                Name: Mehul Arora
+            </div>
+        </div>
+
+        <!-- Review Section -->
+        <div class="review-section" id="reviewSection">
+            <div class="review-item">
+                <div class="review-label">Operator Name</div>
+                <div class="review-value" id="reviewName"></div>
+            </div>
+
+            <div class="review-item">
+                <div class="review-label">Phone Number</div>
+                <div class="review-value">+91 <span id="reviewPhone"></span></div>
+            </div>
+
+            <div class="review-item">
+                <div class="review-label">Aadhaar Number</div>
+                <div class="review-value">****<span id="reviewAadhaar"></span></div>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn-primary" id="loginBtn" onclick="handleLogin()">
+                    Confirm & Login
+                </button>
+                <button type="button" class="btn-secondary show" id="backBtn" onclick="handleBack()">
+                    Back
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let formData = {
+            operatorName: '',
+            phoneNumber: '',
+            aadhaarNumber: ''
+        };
+
+        function showError(message) {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+        }
+
+        function hideError() {
+            const errorEl = document.getElementById('errorMessage');
+            errorEl.classList.remove('show');
+        }
+
+        function handleContinue(event) {
+            event.preventDefault();
+            hideError();
+
+            const name = document.getElementById('operatorName').value.trim();
+            const phone = document.getElementById('phoneNumber').value.trim();
+            const aadhaar = document.getElementById('aadhaarNumber').value.trim();
+
+            // Validation
+            if (!name) {
+                showError('Please enter operator name');
+                return;
+            }
+            if (!/^\d{10}$/.test(phone)) {
+                showError('Please enter a valid 10-digit phone number');
+                return;
+            }
+            if (!/^\d{12}$/.test(aadhaar)) {
+                showError('Please enter a valid 12-digit Aadhaar number');
+                return;
+            }
+
+            // Save form data
+            formData = { operatorName: name, phoneNumber: phone, aadhaarNumber: aadhaar };
+
+            // Show review
+            document.getElementById('reviewName').textContent = name;
+            document.getElementById('reviewPhone').textContent = phone;
+            document.getElementById('reviewAadhaar').textContent = aadhaar.slice(-4);
+
+            document.getElementById('formSection').classList.add('hide');
+            document.getElementById('reviewSection').classList.add('show');
+        }
+
+        function handleBack() {
+            document.getElementById('formSection').classList.remove('hide');
+            document.getElementById('reviewSection').classList.remove('show');
+            hideError();
+        }
+
+        async function handleLogin() {
+            hideError();
+            const loginBtn = document.getElementById('loginBtn');
+            const originalText = loginBtn.textContent;
+            
+            try {
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '<span class="loading"></span>Logging in...';
+
+                // Save to localStorage
+                const operatorSession = {
+                    operatorId: `OP_${Date.now()}`,
+                    operatorName: formData.operatorName,
+                    phoneNumber: formData.phoneNumber,
+                    aadhaarNumber: formData.aadhaarNumber,
+                    selfie: 'web-mock-selfie',
+                    loginTime: new Date().toISOString(),
+                };
+
+                localStorage.setItem('currentOperator', JSON.stringify(operatorSession));
+                
+                // Redirect to home
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 500);
+            } catch (err) {
+                showError('Failed to login. Please try again.');
+                loginBtn.disabled = false;
+                loginBtn.textContent = originalText;
+            }
+        }
+
+        // Only allow digits in phone and aadhaar fields
+        document.getElementById('phoneNumber').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+        });
+
+        document.getElementById('aadhaarNumber').addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 12);
+        });
+    </script>
+</body>
+</html>
