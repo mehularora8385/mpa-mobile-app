@@ -1,8 +1,7 @@
 import type { CookieOptions, Request } from "express";
 
-// Configuration for development environments only
-// Production uses actual domain names
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+// Production configuration only
+// Security: All authentication handled via backend API
 
 function isIpAddress(host: string) {
   // Basic IPv4 check and IPv6 presence detection.
@@ -27,9 +26,8 @@ function isSecureRequest(req: Request) {
  * This allows cookies set by 3000-xxx to be read by 8081-xxx
  */
 function getParentDomain(hostname: string): string | undefined {
-  // Don't set domain for localhost, IP addresses, or development environments
-  // In production, use actual domain names
-  if (LOCAL_HOSTS.has(hostname) || isIpAddress(hostname)) {
+  // Don't set domain for IP addresses
+  if (isIpAddress(hostname)) {
     return undefined;
   }
 
